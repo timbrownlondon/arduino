@@ -7,19 +7,19 @@
 TM1638 mid_board(8, 9, 6, true, 0);
 TM1638 top_board(8, 9, 7, true, 0);
 
-DateDisplay date_top(4, 4, 1962, 100, true);
-DateDisplay date_mid(4, 4, 2032, 110, false);
+DateDisplay date_top(4, 4, 1962);
+DateDisplay date_mid(6, 3, 1999);
 
 void setup() {
 }
 
 void loop() {
-  if (date_top.readyToUpdate(millis())) {
-    date_top.update(top_board);
-  }
-  if (date_mid.readyToUpdate(millis())) {
-    date_mid.update(mid_board);
-  }
-  delay(7);
+  date_top.doAction(top_board);
+  date_top.update(millis());
+  date_top.display(top_board);
+
+  date_mid.doAction(mid_board);
+  date_mid.update(millis());
+  date_mid.display(mid_board);
 }
 

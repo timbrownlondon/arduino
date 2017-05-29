@@ -5,22 +5,48 @@
 #include <DateDisplay.h>
 #include <TM1638.h>
 
-DateDisplay::DateDisplay(uint8_t d, uint8_t m, uint16_t y, uint16_t interval, boolean is_forward) {
-  day   = d;
-  month = m;
-  year  = y;
+DateDisplay::DateDisplay(byte day, byte month, int year) {
+  this->day   = day;
+  this->month = month;
+  this->year  = this->birth_year  = year;
+  this->mode = Date;
+
   // how often will display change (millis)
-  this->interval    = interval;
-  last_update = millis();
-  count = 0;
-  this->is_forward = is_forward;
+  this->interval    = 100;
+  this->last_update = millis();
+  this->count = 0;
+  this->is_running = true;
+}
+
+byte DateDisplay::lastButtonPressed(TM1638 &board) {
+  switch(board.getButtons()) {
+    case 1:   this->last_press = 1; break;
+    case 2:   this->last_press = 2; break;
+    case 4:   this->last_press = 3; break;
+    case 8:   this->last_press = 4; break;
+    case 16:  this->last_press = 5; break;
+    case 32:  this->last_press = 6; break;
+    case 64:  this->last_press = 7; break;
+    case 128: this->last_press = 8; break;
+  }
+  return this->last_press;
+}
+
+void DateDisplay::doAction(TM1638 &board) {
+  // start/stop, slow/mid/fast, dim/mid/bright, jump
+  switch(DateDisplay::lastButtonPressed(board)) {
+    case 1: this->is_running = false; break;
+    case 2: this->is_running = true; break;
+    case 7: this->mode = Age; break;
+    case 8: this->mode = Date; break;
+  }
 }
 
 // this array starts Dec, Jan, Feb...
 // month[0] is 31 (December) 
 uint8_t month_length[13] = {31, 31,28,31, 30,31,30, 31,31,30, 31,30,31};
 
-boolean DateDisplay::is_leap(uint16_t year) {
+boolean DateDisplay::is_leap(int year) {
   if(year % 400 == 0){
     return true;
   }
@@ -33,83 +59,98 @@ boolean DateDisplay::is_leap(uint16_t year) {
   return false; 
 }
 
-boolean DateDisplay::readyToUpdate(int millis){
+void DateDisplay::update(int millis){
+  if(! this->is_running){
+    return;
+  }
   if(millis - last_update > interval){
-     count++;
-     if(! count) { //every 256th cycle
-       if(is_forward){
-         nextDay();
-       }
-       else {
-         previousDay();
-       }
+     this->count++;
+     if(! this->count) { //every 256th cycle
+       DateDisplay::nextDay();
      }
-     last_update = millis;
+     this->last_update = millis;
      return true;
   }
-  return false;
 }
 
 void DateDisplay::nextDay() {
-  day++;
-  if(day > month_length[month]){
-    day = 1;
-    month++;
+  this->day++;
+  if(this->day > month_length[month]){
+    this->day = 1;
+    this->month++;
 
-    if(month > 12){
-      month = 1;
-      year++;
+    if(this->month > 12){
+      this->month = 1;
+      this->year++;
 
-      if(year > 2100){
-        year = 1800;
+      if(this->year > 2029){
+        this->year = 1950;
       }
     }
   }
 }
 
 void DateDisplay::previousDay() {
-  day--;
-  if(day < 1){
-    month--;
-    day = month_length[month];
+  this->day--;
+  if(this->day < 1){
+    this->month--;
+    this->day = month_length[month];
 
-    if(month < 1){
-      month = 12;
-      year--;
+    if(this->month < 1){
+      this->month = 12;
+      this->year--;
 
-      if(year < 1800){
-        year = 2100;
+      if(this->year < 1800){
+        this->year = 2100;
       }
     }
   }
 }
 
-void DateDisplay::update(TM1638 &board) {
-  // LEDs
+void DateDisplay::display(TM1638 &board) {
   board.setLEDs(count);
 
+  if(mode == Date){ DateDisplay::show_date(board); }
+  if(mode == Age){  DateDisplay::show_age(board); }
+}
+
+void DateDisplay::show_date(TM1638 &board) {
   // days...
-  if(day / 10){
-    board.setDisplayDigit(day / 10, 0, false);
+  if(this->day / 10){
+    board.setDisplayDigit(this->day / 10, 0, false);
   }
   else {
     board.clearDisplayDigit(0, false);
   }
-  board.setDisplayDigit(day % 10, 1, true);
+  board.setDisplayDigit(this->day % 10, 1, true);
 
   // months...
-  if(month / 10){
-    board.setDisplayDigit(month / 10, 2, false);
+  if(this->month / 10){
+    board.setDisplayDigit(this->month / 10, 2, false);
   }
   else {
     board.clearDisplayDigit(2, false);
   }
-  board.setDisplayDigit(month % 10, 3, true);
+  board.setDisplayDigit(this->month % 10, 3, true);
 
   // year...
-  board.setDisplayDigit(year/1000, 4, false);
-  board.setDisplayDigit((year/100) % 10, 5, false);
-  board.setDisplayDigit((year % 100)/10, 6, false);
-  board.setDisplayDigit(year % 10, 7, false);
+  board.setDisplayDigit(this->year/1000, 4, false);
+  board.setDisplayDigit((this->year/100) % 10, 5, false);
+  board.setDisplayDigit((this->year % 100)/10, 6, false);
+  board.setDisplayDigit(this->year % 10, 7, false);
+}
+
+
+void DateDisplay::show_age(TM1638 &board) {
+  board.setDisplayToString("YEARS", 0, 3);
+
+  int age = this->year - this->birth_year;
+  if(age / 10){
+    board.setDisplayDigit(age / 10, 0, false);
+  }
+  else {
+    board.clearDisplayDigit(0, false);
+  }
+  board.setDisplayDigit(age % 10, 1,false);
 }
 
