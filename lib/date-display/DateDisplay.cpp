@@ -5,17 +5,20 @@
 #include <DateDisplay.h>
 #include <TM1638.h>
 
-DateDisplay::DateDisplay(byte day, byte month, int year) {
+DateDisplay::DateDisplay(byte day, byte month, int year, boolean is_forwards) {
   this->day   = day;
   this->month = month;
-  this->year  = this->birth_year  = year;
+  this->year  = year;
   this->mode = Date;
+  this->is_forwards = is_forwards;
 
   // how often will display change (millis)
-  this->interval    = 100;
-  this->last_update = millis();
+  this->interval = 256; // medium speed
+  this->next_update_time = millis();
   this->count = 0;
-  this->is_running = true;
+  this->epoch = 0;
+  this->a0 = analogRead(0);
+  this->rand =random(0,10000);
 }
 
 byte DateDisplay::lastButtonPressed(TM1638 &board) {
@@ -33,13 +36,31 @@ byte DateDisplay::lastButtonPressed(TM1638 &board) {
 }
 
 void DateDisplay::doAction(TM1638 &board) {
-  // start/stop, slow/mid/fast, dim/mid/bright, jump
+  // stop, fast/medium/slow, dim/mid/bright, jump
   switch(DateDisplay::lastButtonPressed(board)) {
-    case 1: this->is_running = false; break;
-    case 2: this->is_running = true; break;
-    case 7: this->mode = Age; break;
+    case 1: this->pause(9000); break;
+    case 2: this->interval = 32; break;
+    case 3: this->interval = 256; break;
+    case 4: this->interval = 2048; break;
+
+    case 5: this->mode = Random; break;
+    case 6: this->mode = AnalogZero; break;
+    case 7: this->mode = Epoch; break;
     case 8: this->mode = Date; break;
   }
+}
+
+void DateDisplay::speed_up(){
+  this->interval /= 2;
+  if(this->interval < 10){
+    this->interval = 4096;
+  }
+}
+
+void DateDisplay::pause(int wait_millis){
+  this->next_update_time = millis() + wait_millis;
+  // return to Date mode after pause
+  this->last_press = 8;
 }
 
 // this array starts Dec, Jan, Feb...
@@ -59,17 +80,16 @@ boolean DateDisplay::is_leap(int year) {
   return false; 
 }
 
-void DateDisplay::update(int millis){
-  if(! this->is_running){
-    return;
-  }
-  if(millis - last_update > interval){
+void DateDisplay::update(){
+  if(millis() > this->next_update_time){
      this->count++;
-     if(! this->count) { //every 256th cycle
-       DateDisplay::nextDay();
+     this->epoch++;
+     if(!(this->count % 8)){
+        this->is_forwards? DateDisplay::nextDay() : DateDisplay::previousDay();
+        this->a0 = analogRead(0);
+        this->rand = random(0,10000);
      }
-     this->last_update = millis;
-     return true;
+     this->next_update_time = millis() + this->interval;
   }
 }
 
@@ -83,11 +103,12 @@ void DateDisplay::nextDay() {
       this->month = 1;
       this->year++;
 
-      if(this->year > 2029){
-        this->year = 1950;
+      if(this->year > 2038){
+        this->year = 1900;
       }
     }
   }
+  return true;
 }
 
 void DateDisplay::previousDay() {
@@ -108,10 +129,12 @@ void DateDisplay::previousDay() {
 }
 
 void DateDisplay::display(TM1638 &board) {
-  board.setLEDs(count);
+  board.setLEDs(count ^ (count >> 1));
 
   if(mode == Date){ DateDisplay::show_date(board); }
-  if(mode == Age){  DateDisplay::show_age(board); }
+  if(mode == Epoch){  DateDisplay::show_epoch(board); }
+  if(mode == AnalogZero){  DateDisplay::show_analog_zero(board); }
+  if(mode == Random){  DateDisplay::show_random(board); }
 }
 
 void DateDisplay::show_date(TM1638 &board) {
@@ -141,16 +164,19 @@ void DateDisplay::show_date(TM1638 &board) {
 }
 
 
-void DateDisplay::show_age(TM1638 &board) {
-  board.setDisplayToString("YEARS", 0, 3);
-
-  int age = this->year - this->birth_year;
-  if(age / 10){
-    board.setDisplayDigit(age / 10, 0, false);
-  }
-  else {
-    board.clearDisplayDigit(0, false);
-  }
-  board.setDisplayDigit(age % 10, 1,false);
+void DateDisplay::show_epoch(TM1638 &board) {
+  board.setDisplayToHexNumber(this->epoch, 0, false);
 }
 
+void DateDisplay::show_random(TM1638 &board) {
+  board.setDisplayToDecNumber(this->rand, 0, false);
+}
+
+void DateDisplay::show_analog_zero(TM1638 &board) {
+  board.setDisplayToDecNumber(this->interval, 0, false);
+}
+
+byte binaryToGray(byte count)
+{
+    return count ^ (count >> 1);
+}
