@@ -12,7 +12,7 @@
 // refer to...
 // https://arduino-info.wikispaces.com/LCD-Blue-I2C
 // https://github.com/marcoschwartz/LiquidCrystal_I2C
-// NB - also checked out following 
+// NB - also checked out following
 // https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads/
 // I2C Serial Interface 16X2 Character LCD Display
 // bought 3 from ebay £1.87 each, 14 April 2017
@@ -34,34 +34,54 @@ Adafruit_NeoMatrix matrix
                        NEO_GRB           + NEO_KHZ800);
 
 const uint16_t colors[] = {
-  matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255)
+  matrix.Color(255, 0, 0),
+  matrix.Color(0, 255, 0),
+  matrix.Color(0, 0, 255),
+
+  matrix.Color(255, 255, 0),
+  matrix.Color(255, 0, 255),
+  matrix.Color(0, 255, 255),
+
+  matrix.Color(255, 255, 255)
 };
 
+#define PIR 3
+int count = 0;
+byte last_pir = 0;
+byte this_pir = 0;
+
 void setup() {
+  pinMode(PIR, INPUT);
+
   matrix.begin();
-  matrix.setTextWrap(false);
-  matrix.setBrightness(5);
-  matrix.setTextColor(colors[0]);
+  matrix.setBrightness(1);
   matrix.fillScreen(colors[2]);
   matrix.show();
 
   lcd.init();
-  // Print a message to the LCD.
   lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Hello");
 }
 
 
 void loop() {
-  matrix.drawPixel(0, 0, colors[1]);
-  matrix.drawPixel(1, 7, colors[2]);
-  matrix.drawPixel(3, 6, colors[3]);
-  matrix.show();
+  for (int i = 0; i < 7; i++) {
+    for (int x = 0; x < 8; x++) {
+      for (int y = 0; y < 8; y++) {
+        matrix.drawPixel(x, y, colors[(i + x + y) % 7]);
+        matrix.show();
+        delay(20);
 
-  for (int i = 0; i, 8; i++) {
-    matrix.drawPixel(i, i, colors[0]);
-    matrix.show();
-    delay(2000);
+        // read the PIR sensor 
+        // 1  means movement detected
+        // 0 means no movement
+        this_pir = digitalRead(PIR);
+        if (this_pir != last_pir) {
+          last_pir = this_pir;
+          count += this_pir;
+          lcd.setCursor(0, 1);
+          lcd.print(count);
+        }
+      }
+    }
   }
 }
