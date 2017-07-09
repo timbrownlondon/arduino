@@ -3,9 +3,6 @@
 #include <Adafruit_NeoPixel.h>
 #include <gamma.h>
 
-
-
-
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
@@ -25,7 +22,7 @@
 // the displays I have use I2C address 0x3F
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
-
+unsigned long last_transition_millis = millis();
 
 Adafruit_NeoMatrix matrix
   = Adafruit_NeoMatrix(8, 8, 2,
@@ -45,10 +42,12 @@ const uint16_t colors[] = {
   matrix.Color(255, 255, 255)
 };
 
+// pin that is connected to Passive InfraRed sensor
 #define PIR 3
 int count = 0;
 byte last_pir = 0;
 byte this_pir = 0;
+boolean movement_detected = false;
 
 void setup() {
   pinMode(PIR, INPUT);
@@ -71,17 +70,37 @@ void loop() {
         matrix.show();
         delay(20);
 
-        // read the PIR sensor 
+        // make things go dark if no recent movements
+        if ((millis() - last_transition_millis > 10 * 1000) and ! movement_detected) {
+          matrix.setBrightness(0);
+          lcd.noBacklight();
+        }
+
+        // read the PIR sensor
         // 1  means movement detected
         // 0 means no movement
         this_pir = digitalRead(PIR);
+        movement_detected = (boolean)this_pir;
+
+        lcd.setCursor(0, 0);
+        lcd.print(movement_detected ? "move " : "     ");
+        lcd.print((millis() - last_transition_millis) / 1000);
+        lcd.print("    ");
+
         if (this_pir != last_pir) {
           last_pir = this_pir;
-          count += this_pir;
-          lcd.setCursor(0, 1);
-          lcd.print(count);
+          last_transition_millis = millis();
+
+          if (this_pir) {
+            count++;
+            lcd.setCursor(5, 1);
+            lcd.print(count);
+            lcd.backlight();
+            matrix.setBrightness(1);
+          }
         }
       }
     }
   }
 }
+
