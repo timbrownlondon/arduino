@@ -26,9 +26,9 @@ unsigned long last_transition_millis = millis();
 
 Adafruit_NeoMatrix matrix
   = Adafruit_NeoMatrix(8, 8, 2,
-                       NEO_MATRIX_TOP + NEO_MATRIX_RIGHT +
-                       NEO_MATRIX_ROWS   + NEO_MATRIX_ZIGZAG,
-                       NEO_GRB           + NEO_KHZ800);
+                       NEO_MATRIX_TOP  + NEO_MATRIX_RIGHT +
+                       NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
+                       NEO_GRB         + NEO_KHZ800);
 
 const uint16_t colors[] = {
   matrix.Color(255, 0, 0),
@@ -39,15 +39,15 @@ const uint16_t colors[] = {
   matrix.Color(255, 0, 255),
   matrix.Color(0, 255, 255),
 
-  matrix.Color(255, 255, 255)
+  matrix.Color(0, 0, 0)
 };
 
 // pin that is connected to Passive InfraRed sensor
 #define PIR 3
 int count = 0;
 byte last_pir = 0;
-byte this_pir = 0;
-boolean movement_detected = false;
+byte pir = 0;
+//boolean movement_detected = false;
 
 void setup() {
   pinMode(PIR, INPUT);
@@ -61,46 +61,40 @@ void setup() {
   lcd.backlight();
 }
 
-
 void loop() {
-  for (int i = 0; i < 7; i++) {
-    for (int x = 0; x < 8; x++) {
-      for (int y = 0; y < 8; y++) {
-        matrix.drawPixel(x, y, colors[(i + x + y) % 7]);
-        matrix.show();
-        delay(20);
 
-        // make things go dark if no recent movements
-        if ((millis() - last_transition_millis > 10 * 1000) and ! movement_detected) {
-          matrix.setBrightness(0);
-          lcd.noBacklight();
-        }
+  // read the PIR sensor
+  // 1  means movement detected
+  // 0 means no movement
+  pir = digitalRead(PIR);
 
-        // read the PIR sensor
-        // 1  means movement detected
-        // 0 means no movement
-        this_pir = digitalRead(PIR);
-        movement_detected = (boolean)this_pir;
+  // if PIR has fired set a coloured pixel, otherwise switch one off
+  uint16_t colour = (pir ?
+                     (count % 2 ? colors[random(6)] : colors[count / 2 % 6] ) // sparkle or single colour
+                     : colors[6] // pixel off
+                    );
 
-        lcd.setCursor(0, 0);
-        lcd.print(movement_detected ? "move " : "     ");
-        lcd.print((millis() - last_transition_millis) / 1000);
-        lcd.print("    ");
+  matrix.drawPixel(random(8), random(8), colour);
+  matrix.show();
 
-        if (this_pir != last_pir) {
-          last_pir = this_pir;
-          last_transition_millis = millis();
 
-          if (this_pir) {
-            count++;
-            lcd.setCursor(5, 1);
-            lcd.print(count);
-            lcd.backlight();
-            matrix.setBrightness(1);
-          }
-        }
-      }
+  if (pir != last_pir) {
+    last_pir = pir;
+    last_transition_millis = millis();
+
+    if (pir) {
+      lcd.setCursor(5, 1);
+      lcd.print(++count);
+      lcd.backlight();
     }
   }
+
+  // switch off lcd backlight if no recent activity
+  if ((millis() - last_transition_millis > 10 * 1000)) {
+    lcd.noBacklight();
+  }
+
+  delay(7);
 }
+
 
