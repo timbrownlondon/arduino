@@ -42,15 +42,16 @@ const uint16_t colors[] = {
   matrix.Color(0, 0, 0)
 };
 
-// pin that is connected to Passive InfraRed sensor
+// pin connected to Passive InfraRed sensor
 #define PIR 3
+#define BUTTON 10
 int count = 0;
 byte last_pir = 0;
 byte pir = 0;
-//boolean movement_detected = false;
 
 void setup() {
   pinMode(PIR, INPUT);
+  pinMode(BUTTON, INPUT);
 
   matrix.begin();
   matrix.setBrightness(1);
@@ -58,16 +59,24 @@ void setup() {
   matrix.show();
 
   lcd.init();
-  lcd.backlight();
 }
 
 void loop() {
+  // backlight on if button pressed
+  if (digitalRead(BUTTON)) {
+    last_transition_millis = millis();
+    lcd.setBacklight(1);
+  }
+  // backlight off after timeout
+  if ((millis() - last_transition_millis > 10 * 1000)) {
+    lcd.setBacklight(0);
+  }
 
   // read the PIR sensor
   // 1  means movement detected
   // 0 means no movement
   pir = digitalRead(PIR);
-
+  
   // if PIR has fired set a coloured pixel, otherwise switch one off
   uint16_t colour = (pir ?
                      (count % 2 ? colors[random(6)] : colors[count / 2 % 6] ) // sparkle or single colour
@@ -83,16 +92,12 @@ void loop() {
     last_transition_millis = millis();
 
     if (pir) {
-      lcd.setCursor(5, 1);
+      lcd.setCursor(0, 1);
       lcd.print(++count);
-      lcd.backlight();
     }
   }
 
-  // switch off lcd backlight if no recent activity
-  if ((millis() - last_transition_millis > 10 * 1000)) {
-    lcd.noBacklight();
-  }
+
 
   delay(7);
 }
