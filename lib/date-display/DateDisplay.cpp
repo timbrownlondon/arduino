@@ -13,7 +13,7 @@ DateDisplay::DateDisplay(byte day, byte month, int year, boolean is_forwards) {
   this->is_forwards = is_forwards;
 
   // how often will display change (millis)
-  this->interval = 256; // medium speed
+  this->interval = 512; // medium speed
   this->next_update_time = millis();
   this->count = 0;
   this->epoch = 0;
@@ -39,8 +39,8 @@ void DateDisplay::doAction(TM1638 &board) {
   // stop, fast/medium/slow, dim/mid/bright, jump
   switch(DateDisplay::lastButtonPressed(board)) {
     case 1: this->pause(9000); break;
-    case 2: this->interval = 32; break;
-    case 3: this->interval = 256; break;
+    case 2: this->interval = 128; break;
+    case 3: this->interval = 512; break;
     case 4: this->interval = 2048; break;
 
     case 5: this->mode = Random; break;
@@ -82,7 +82,7 @@ boolean DateDisplay::is_leap(int year) {
 
 void DateDisplay::update(){
   if(millis() > this->next_update_time){
-     this->count++;
+     this->is_forwards? this->count++ : this->count--;
      this->epoch++;
      if(!(this->count % 8)){
         this->is_forwards? DateDisplay::nextDay() : DateDisplay::previousDay();
@@ -129,7 +129,7 @@ void DateDisplay::previousDay() {
 }
 
 void DateDisplay::display(TM1638 &board) {
-  board.setLEDs(count ^ (count >> 1));
+  board.setLEDs(1 << (count % 8));
 
   if(mode == Date){ DateDisplay::show_date(board); }
   if(mode == Epoch){  DateDisplay::show_epoch(board); }

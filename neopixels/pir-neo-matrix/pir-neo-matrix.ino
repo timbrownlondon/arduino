@@ -22,7 +22,8 @@
 // the displays I have use I2C address 0x3F
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
-unsigned long last_transition_millis = millis();
+unsigned long button_press_millis = millis();
+unsigned long last_move_millis = millis();
 
 Adafruit_NeoMatrix matrix
   = Adafruit_NeoMatrix(8, 8, 2,
@@ -30,7 +31,7 @@ Adafruit_NeoMatrix matrix
                        NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
                        NEO_GRB         + NEO_KHZ800);
 
-const uint16_t colors[] = {
+const uint16_t colours[] = {
   matrix.Color(255, 0, 0),
   matrix.Color(0, 255, 0),
   matrix.Color(0, 0, 255),
@@ -42,59 +43,63 @@ const uint16_t colors[] = {
   matrix.Color(0, 0, 0)
 };
 
-// pin that is connected to Passive InfraRed sensor
+// pin connected to Passive InfraRed sensor
 #define PIR 3
+#define BUTTON 10
 int count = 0;
 byte last_pir = 0;
 byte pir = 0;
-//boolean movement_detected = false;
 
 void setup() {
   pinMode(PIR, INPUT);
+  pinMode(BUTTON, INPUT);
 
   matrix.begin();
   matrix.setBrightness(1);
-  matrix.fillScreen(colors[2]);
+  matrix.fillScreen(colours[1]);
   matrix.show();
 
   lcd.init();
-  lcd.backlight();
 }
 
 void loop() {
+  // backlight on if button pressed
+  if (digitalRead(BUTTON)) {
+    button_press_millis = millis();
+    lcd.setBacklight(1);
+  }
+  // backlight off after timeout
+  if ((millis() - button_press_millis > 10 * 1000)) {
+    lcd.setBacklight(0);
+  }
 
   // read the PIR sensor
   // 1  means movement detected
   // 0 means no movement
   pir = digitalRead(PIR);
 
-  // if PIR has fired set a coloured pixel, otherwise switch one off
-  uint16_t colour = (pir ?
-                     (count % 2 ? colors[random(6)] : colors[count / 2 % 6] ) // sparkle or single colour
-                     : colors[6] // pixel off
-                    );
-
-  matrix.drawPixel(random(8), random(8), colour);
-  matrix.show();
-
-
   if (pir != last_pir) {
     last_pir = pir;
-    last_transition_millis = millis();
-
     if (pir) {
-      lcd.setCursor(5, 1);
+      last_move_millis = millis();
+      lcd.setCursor(0, 1);
       lcd.print(++count);
-      lcd.backlight();
     }
   }
 
-  // switch off lcd backlight if no recent activity
-  if ((millis() - last_transition_millis > 10 * 1000)) {
-    lcd.noBacklight();
+  // if recent movement we set some colour else we switch one pixel off (colour 6)
+  if (millis() - last_move_millis < 15 * 1000) {
+    matrix.drawPixel(random(8),
+                     random(8),
+                     count % 7 ? colours[count % 6] : colours[random(6)]
+    );
+  }
+  else {
+    matrix.drawPixel(random(8), random(8), colours[6]);
   }
 
-  delay(7);
+  matrix.show();
+  delay(10);
 }
 
 
