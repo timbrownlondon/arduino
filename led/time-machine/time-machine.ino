@@ -7,19 +7,19 @@
 TM1638 mid_board(8, 9, 6, true, 0);
 TM1638 top_board(8, 9, 7, true, 0);
 
-DateDisplay date_top(4, 4, 1962, true); // is_forwards = true
-DateDisplay date_mid(6, 3, 1999, false);
+DateDisplay date_top(&top_board, 4, 4, 1962, true); // is_forwards = true
+DateDisplay date_mid(&mid_board, 6, 3, 1999, false);
 
 void setup() {
 }
 
 void loop() {
-  date_top.doAction(top_board);
+  date_top.processButtons();
   date_top.update();
-  date_top.display(top_board);
+  date_top.display();
 
-  date_mid.doAction(mid_board);
+  date_mid.processButtons();
   date_mid.update();
-  date_mid.display(mid_board);
+  date_mid.display();
 }
 

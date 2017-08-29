@@ -5,63 +5,64 @@
 #include <DateDisplay.h>
 #include <TM1638.h>
 
-DateDisplay::DateDisplay(byte day, byte month, int year, boolean is_forwards) {
+// update speed can be modified
+// interval is the delay between each update
+#define MAX_INTERVAL 10000
+#define MIN_INTERVAL 10
+
+DateDisplay::DateDisplay(TM1638* board, byte day, byte month, int year, boolean is_forwards) {
+  this->board = board;
   this->day   = day;
   this->month = month;
   this->year  = year;
-  this->mode = Date;
   this->is_forwards = is_forwards;
 
   // how often will display change (millis)
-  this->interval = 512; // medium speed
-  this->next_update_time = millis();
+  this->interval = 160; // fast update
+  this->last_update_millis = millis();
   this->count = 0;
-  this->epoch = 0;
-  this->a0 = analogRead(0);
-  this->rand =random(0,10000);
+  this->is_running = true;
+  this->show_LEDs = true;
+  this->debounce_millis = 200;
 }
 
-byte DateDisplay::lastButtonPressed(TM1638 &board) {
-  switch(board.getButtons()) {
-    case 1:   this->last_press = 1; break;
-    case 2:   this->last_press = 2; break;
-    case 4:   this->last_press = 3; break;
-    case 8:   this->last_press = 4; break;
-    case 16:  this->last_press = 5; break;
-    case 32:  this->last_press = 6; break;
-    case 64:  this->last_press = 7; break;
-    case 128: this->last_press = 8; break;
+
+void DateDisplay::processButtons() {
+  if(millis() - this->last_press_millis > this->debounce_millis) {
+    this->last_press_millis = millis();
+
+    switch(this->board->getButtons()) {
+      case 1: // button 1: stop/go
+		   	  this->is_running = !this->is_running;
+			  break;
+	  case 2: // button 2
+    	this->is_running = true;
+        this->interval /= 2;
+        if(this->interval < MIN_INTERVAL){
+          this->interval = MIN_INTERVAL;
+        }
+		break;
+      case 4: // button 3
+        this->is_running = true;
+        this->interval *= 2;
+        if(this->interval > MAX_INTERVAL){
+          this->interval = MAX_INTERVAL;
+		}
+		break;
+      case 8: // button 4
+        this->show_LEDs = !this->show_LEDs;
+        if(!this->show_LEDs){
+          this->board->setLEDs(0);
+        }
+        break;
+//      case 16:  this.brighter();
+//      case 32:  this.randomDay();
+//      case 64:  this.randomMonth();
+//      case 128: this.randomYear();
+	}
   }
-  return this->last_press;
 }
 
-void DateDisplay::doAction(TM1638 &board) {
-  // stop, fast/medium/slow, dim/mid/bright, jump
-  switch(DateDisplay::lastButtonPressed(board)) {
-    case 1: this->pause(9000); break;
-    case 2: this->interval = 128; break;
-    case 3: this->interval = 512; break;
-    case 4: this->interval = 2048; break;
-
-    case 5: this->mode = Random; break;
-    case 6: this->mode = AnalogZero; break;
-    case 7: this->mode = Epoch; break;
-    case 8: this->mode = Date; break;
-  }
-}
-
-void DateDisplay::speed_up(){
-  this->interval /= 2;
-  if(this->interval < 10){
-    this->interval = 4096;
-  }
-}
-
-void DateDisplay::pause(int wait_millis){
-  this->next_update_time = millis() + wait_millis;
-  // return to Date mode after pause
-  this->last_press = 8;
-}
 
 // this array starts Dec, Jan, Feb...
 // month[0] is 31 (December) 
@@ -81,15 +82,12 @@ boolean DateDisplay::is_leap(int year) {
 }
 
 void DateDisplay::update(){
-  if(millis() > this->next_update_time){
+  if(this->is_running and millis() > this->last_update_millis + this->interval){
      this->is_forwards? this->count++ : this->count--;
-     this->epoch++;
      if(!(this->count % 8)){
         this->is_forwards? DateDisplay::nextDay() : DateDisplay::previousDay();
-        this->a0 = analogRead(0);
-        this->rand = random(0,10000);
      }
-     this->next_update_time = millis() + this->interval;
+     this->last_update_millis = millis() + this->interval;
   }
 }
 
@@ -103,9 +101,7 @@ void DateDisplay::nextDay() {
       this->month = 1;
       this->year++;
 
-      if(this->year > 2038){
-        this->year = 1900;
-      }
+      this->year %= 100;
     }
   }
   return true;
@@ -128,55 +124,48 @@ void DateDisplay::previousDay() {
   }
 }
 
-void DateDisplay::display(TM1638 &board) {
-  board.setLEDs(1 << (count % 8));
-
-  if(mode == Date){ DateDisplay::show_date(board); }
-  if(mode == Epoch){  DateDisplay::show_epoch(board); }
-  if(mode == AnalogZero){  DateDisplay::show_analog_zero(board); }
-  if(mode == Random){  DateDisplay::show_random(board); }
+void DateDisplay::display() {
+  if(this->show_LEDs){
+    board->setLEDs(1 << (count % 8));
+  }
+  this->show_ddmmyy();
 }
 
-void DateDisplay::show_date(TM1638 &board) {
+void DateDisplay::show_ddmmyy() {
+  this->board->setDisplayDigit(this->day / 10, 0, false);
+  this->board->setDisplayDigit(this->day % 10, 1, false);
+  this->board->setDisplayToString("-", 0, 2); // display hyphen
+  this->board->setDisplayDigit(this->month / 10, 3, false);
+  this->board->setDisplayDigit(this->month % 10, 4, false);
+  this->board->setDisplayToString("-", 0, 5); // display hyphen
+  this->board->setDisplayDigit(this->year % 100 / 10, 6, false);
+  this->board->setDisplayDigit(this->year % 10, 7, false);
+}
+
+
+void DateDisplay::show_date() {
   // days...
   if(this->day / 10){
-    board.setDisplayDigit(this->day / 10, 0, false);
+    board->setDisplayDigit(this->day / 10, 0, false);
   }
   else {
-    board.clearDisplayDigit(0, false);
+    board->clearDisplayDigit(0, false);
   }
-  board.setDisplayDigit(this->day % 10, 1, true);
+  board->setDisplayDigit(this->day % 10, 1, true);
 
   // months...
   if(this->month / 10){
-    board.setDisplayDigit(this->month / 10, 2, false);
+    board->setDisplayDigit(this->month / 10, 2, false);
   }
   else {
-    board.clearDisplayDigit(2, false);
+    board->clearDisplayDigit(2, false);
   }
-  board.setDisplayDigit(this->month % 10, 3, true);
+  board->setDisplayDigit(this->month % 10, 3, true);
 
   // year...
-  board.setDisplayDigit(this->year/1000, 4, false);
-  board.setDisplayDigit((this->year/100) % 10, 5, false);
-  board.setDisplayDigit((this->year % 100)/10, 6, false);
-  board.setDisplayDigit(this->year % 10, 7, false);
+  board->setDisplayDigit(this->year/1000, 4, false);
+  board->setDisplayDigit((this->year/100) % 10, 5, false);
+  board->setDisplayDigit((this->year % 100)/10, 6, false);
+  board->setDisplayDigit(this->year % 10, 7, false);
 }
 
-
-void DateDisplay::show_epoch(TM1638 &board) {
-  board.setDisplayToHexNumber(this->epoch, 0, false);
-}
-
-void DateDisplay::show_random(TM1638 &board) {
-  board.setDisplayToDecNumber(this->rand, 0, false);
-}
-
-void DateDisplay::show_analog_zero(TM1638 &board) {
-  board.setDisplayToDecNumber(this->interval, 0, false);
-}
-
-byte binaryToGray(byte count)
-{
-    return count ^ (count >> 1);
-}
