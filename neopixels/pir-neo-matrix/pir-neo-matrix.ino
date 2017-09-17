@@ -24,6 +24,8 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
 unsigned long button_press_millis = millis();
 unsigned long last_move_millis = millis();
+boolean display_is_on = true;
+#define DEBOUNCE_MILLIS 200
 
 Adafruit_NeoMatrix matrix
   = Adafruit_NeoMatrix(8, 8, 2,
@@ -46,7 +48,7 @@ const uint16_t colours[] = {
 // pin connected to Passive InfraRed sensor
 #define PIR 3
 #define BUTTON 10
-int count = 0;
+int count = 1;
 byte last_pir = 0;
 byte pir = 0;
 
@@ -60,17 +62,23 @@ void setup() {
   matrix.show();
 
   lcd.init();
+  lcd.display();
+  lcd.setBacklight(1);
 }
 
 void loop() {
-  // backlight on if button pressed
-  if (digitalRead(BUTTON)) {
+
+  // toggle backlight when button is pressed`
+  if (digitalRead(BUTTON) and millis() - button_press_millis > DEBOUNCE_MILLIS) {
     button_press_millis = millis();
-    lcd.setBacklight(1);
-  }
-  // backlight off after timeout
-  if ((millis() - button_press_millis > 10 * 1000)) {
-    lcd.setBacklight(0);
+    display_is_on = not display_is_on;
+    lcd.setBacklight(display_is_on);
+    if (display_is_on) {
+      lcd.display();
+    }
+    else {
+      lcd.noDisplay();
+    }
   }
 
   // read the PIR sensor
@@ -82,24 +90,42 @@ void loop() {
     last_pir = pir;
     if (pir) {
       last_move_millis = millis();
-      lcd.setCursor(0, 1);
-      lcd.print(++count);
+      show_message(++count);
     }
   }
 
+
   // if recent movement we set some colour else we switch one pixel off (colour 6)
-  if (millis() - last_move_millis < 15 * 1000) {
+  if (millis() - last_move_millis < 30 * 1000) {
     matrix.drawPixel(random(8),
                      random(8),
                      count % 7 ? colours[count % 6] : colours[random(6)]
-    );
+                    );
   }
   else {
     matrix.drawPixel(random(8), random(8), colours[6]);
   }
 
   matrix.show();
-  delay(10);
+  delay(5);
 }
 
+String subjects[6] = {"I", "You", "They", "He", "She", "We"};
+String verbs[4]    = {" watched ", " looked at ", " glanced at ", " saw "};
+String objects[6]  = {"me ", "you ", "them ", "him ", "her ", "us "};
+
+
+void show_message(int i) {
+  // make a message with some randomness
+
+  String subj = subjects[random(6)];
+  String  obj =  objects[random(6)];
+
+
+  lcd.setCursor(0, 0);
+  lcd.print(subjects[random(6)] + verbs[random(4)] +  "          ");
+  lcd.setCursor(0, 1);
+  lcd.print(objects[random(6)] + String(i) + " times       ");
+
+}
 
