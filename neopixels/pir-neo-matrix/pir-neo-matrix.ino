@@ -57,7 +57,7 @@ void setup() {
   pinMode(BUTTON, INPUT);
 
   matrix.begin();
-  matrix.setBrightness(1);
+  matrix.setBrightness(2);
   matrix.fillScreen(colours[1]);
   matrix.show();
 
@@ -97,17 +97,17 @@ void loop() {
 
   // if recent movement we set some colour else we switch one pixel off (colour 6)
   if (millis() - last_move_millis < 30 * 1000) {
-    matrix.drawPixel(random(8),
-                     random(8),
-                     count % 7 ? colours[count % 6] : colours[random(6)]
-                    );
+    int i = random(5) < 4 ?
+            count % 6 : random(6);
+
+    matrix.drawPixel(random(8), random(8), colours[i]);
   }
   else {
     matrix.drawPixel(random(8), random(8), colours[6]);
   }
 
   matrix.show();
-  delay(5);
+  delay(10);
 }
 
 String subjects[6] = {"I", "You", "They", "He", "She", "We"};
@@ -125,7 +125,7 @@ void show_message(int i) {
   lcd.setCursor(0, 0);
   lcd.print(subjects[random(6)] + verbs[random(4)] +  "          ");
   lcd.setCursor(0, 1);
-  lcd.print(objects[random(6)] + String(i) + " times       ");
+  lcd.print(objects[random(6)] + String(i) + " times.       ");
 
 }
 
