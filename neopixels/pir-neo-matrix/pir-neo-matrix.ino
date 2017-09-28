@@ -76,10 +76,9 @@ void loop() {
   if (digitalRead(BUTTON) and millis() - button_press_millis > DEBOUNCE_MILLIS) {
     button_press_millis = millis();
     display_is_on = not display_is_on;
-    if (display_is_on) {
-      do_message = not do_message;
-    }
   }
+
+  do_message = millis() / 4000 % 7 != 0;
 
   if (display_is_on) {
     if (do_message) {
@@ -107,7 +106,9 @@ void loop() {
       last_move_millis = millis();
       count++;
 
-      line1 = top_line();
+      if (count % 2 == 1) {
+        line1 = top_line();
+      }
       line2 = lower_line(count);
     }
   }
@@ -135,13 +136,16 @@ void show_count(int i) {
   lcd.setCursor(0, 0);
   lcd.print(String(i) + " " + colour_names[i % 6] + blank);
   lcd.setCursor(0, 1);
-  int t = millis() / 1000;
+  unsigned long t = millis() / 1000;
   if ( t > 3600 ) {
     t /= 60;
     lcd.print(String(t / 60) + " hr " + String(t % 60) + " min" + blank);
   }
   else {
-    lcd.print(String(t / 60) + " min " + String(t % 60) + " sec" + blank);
+    if ( t > 59 ) {
+      lcd.print(String(t / 60) + " min ");
+    }
+    lcd.print(String(t % 60) + " sec" + blank);
   }
 }
 
@@ -152,26 +156,26 @@ void show_message() {
   lcd.print(line2);
 }
 
-const String subjects[6] = {"I", "You", "They", "He", "She", "We"};
-const String verbs[7]    = {" watched ", " looked at ", " glanced at ", " saw ", " will see ", " never saw ", " will watch "};
-const String objects[6]  = {"me", "you", "them", "him", "her", "us"};
+const String subjects[6] = {"I ", "You ", "They ", "He ", "She ", "We "};
+const String verbs[8]    = {"watched", "looked at", "glanced at", "saw", "will see", "never saw", "will watch", "didn't see"};
+const String objects[6]  = {" me", " you", " them", " him", " her", " us"};
 
 String top_line() {
   while (true) {
-    String line = subjects[random(6)] + verbs[random(7)] + objects[random(6)];
+    String line = subjects[random(6)] + verbs[random(8)] + objects[random(6)];
     if (line.length() < 17) {
       return line + blank;
     }
   }
 }
 
-String numbers[20] = {"once.", "twice.", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+String numbers[21] = {"again!", "once.", "twice.", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
                       "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"
                      };
 
 String lower_line(int i) {
-  String lower_line = numbers[i % 20];
-  if (i % 20 > 1) {
+  String lower_line = numbers[i % 21];
+  if (i % 21 > 2) {
     lower_line += " times.";
   }
   return lower_line + blank;
