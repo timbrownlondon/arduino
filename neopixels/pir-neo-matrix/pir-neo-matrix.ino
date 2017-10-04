@@ -115,8 +115,6 @@ void loop() {
     matrix.drawPixel(random(8), random(8), colours[6]);
   }
   matrix.show();
-
-  //delay(10);
 }
 
 
