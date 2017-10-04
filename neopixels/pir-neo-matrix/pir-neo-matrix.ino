@@ -24,8 +24,12 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
 unsigned long button_press_millis = millis();
 unsigned long last_move_millis = millis();
-boolean display_is_on = true;
-boolean do_message = true;
+boolean display_message = true;
+const String blank = "                ";
+
+const String padding[] = {"", " ", "  ", "   ", "    ", "     ", "      ", "       ", "        "};
+
+
 #define DEBOUNCE_MILLIS 200
 
 Adafruit_NeoMatrix matrix
@@ -75,26 +79,10 @@ void loop() {
   // also toggle message mode
   if (digitalRead(BUTTON) and millis() - button_press_millis > DEBOUNCE_MILLIS) {
     button_press_millis = millis();
-    display_is_on = not display_is_on;
+    display_message = not display_message;
   }
 
-  do_message = millis() / 4000 % 7 != 0;
-
-  if (display_is_on) {
-    if (do_message) {
-      show_message();
-    }
-    else {
-      show_count(count);
-    }
-    lcd.display();
-    lcd.setBacklight(1);
-  }
-  else {
-    lcd.noDisplay();
-    lcd.setBacklight(0);
-  }
-
+  display_message ? show_message() : show_count(count);
 
   // read the PIR sensor
   // 1  means movement detected
@@ -106,13 +94,17 @@ void loop() {
       last_move_millis = millis();
       count++;
 
+      String msg = message();
       if (count % 2 == 1) {
-        line1 = top_line();
+        line1 = msg + padding[16 - msg.length()];
+        line2 = blank;
       }
-      line2 = lower_line(count);
+      else {
+        line1 = blank;
+        line2 = padding[16 - msg.length()] + msg;
+      }
     }
   }
-
 
   // if recent movement we set some colour else we switch one pixel off (colour 6)
   if (millis() - last_move_millis < 30 * 1000) {
@@ -127,9 +119,6 @@ void loop() {
   //delay(10);
 }
 
-
-
-const String blank = "                ";
 
 const String colour_names[6] = {"red", "green", "blue", "yellow", "pink", "cyan"};
 void show_count(int i) {
@@ -156,30 +145,16 @@ void show_message() {
   lcd.print(line2);
 }
 
-const String subjects[6] = {"I ", "You ", "They ", "He ", "She ", "We "};
+const String subjects[6] = {"I ", "you ", "they ", "he ", "she ", "we "};
 const String verbs[8]    = {"watched", "looked at", "glanced at", "saw", "will see", "never saw", "will watch", "didn't see"};
 const String objects[6]  = {" me", " you", " them", " him", " her", " us"};
 
-String top_line() {
+String message() {
   while (true) {
     String line = subjects[random(6)] + verbs[random(8)] + objects[random(6)];
     if (line.length() < 17) {
-      return line + blank;
+      return line;
     }
   }
 }
-
-String numbers[21] = {"again!", "once.", "twice.", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
-                      "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"
-                     };
-
-String lower_line(int i) {
-  String lower_line = numbers[i % 21];
-  if (i % 21 > 2) {
-    lower_line += " times.";
-  }
-  return lower_line + blank;
-}
-
-
 
