@@ -1,15 +1,11 @@
 // https://github.com/rjbatista/tm1638-library
 #include <TM1638.h>
 
-<<<<<<< HEAD
-
-// define a module on data pin 8, clock pin 9 and strobe pin 6, activate is true, brightness 1
+// define 2 modules on data pin 8, clock pin 9 and strobe pin 6 and 7
+// activate is true, brightness is 1
 TM1638 display_a(8, 9, 6, true, 1);
 TM1638 display_b(8, 9, 7, true, 1);
-=======
-// define a module on data pin 8, clock pin 9 and strobe pin 10, activate is true, brightness 1
-TM1638 module(8, 9, 10, true, 1);
->>>>>>> a370e9196aa510aea102ae772331512c666ce3e2
+
 unsigned long a = 1;
 
 void setup() {
