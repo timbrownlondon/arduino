@@ -11,15 +11,11 @@
 #define MIN_INTERVAL    125
 #define DEBOUNCE_MILLIS 250
 
-CountDisplay::CountDisplay(TM1638* board, uint32_t start) {
+CountDisplay::CountDisplay(TM1638* board, byte number_base) {
   this->board = board;
-  this->count = start;
-
-  // how often will display change (millis)
-  this->interval = MAX_INTERVAL; 
-  this->last_update_millis = millis() + 5000; // leave 5 seconds before counting
-  this->is_running = true;
   this->show_LEDs = true;
+  this->count = 0;
+  this->number_base = number_base;
 }
 
 
@@ -71,24 +67,15 @@ byte CountDisplay::getLastButtonPress() {
 }
 
 byte CountDisplay::whichButtonPressed(){
-
-
+  return this->last_button_pressed;
 }
 
-void CountDisplay::update(){
-  if(this->buttonPressed()){
-    this->display();
-  }
 
-  if(this->is_running and millis() > this->last_update_millis + this->interval){
-    this->last_update_millis = millis(); 
-    this->count++;
-    this->display();
-  }
-}
+void CountDisplay::display(unsigned long count){
+  this->number_base == 10?
+    this->board->setDisplayToDecNumber(count, 0, false):
+    this->board->setDisplayToHexNumber(count, 0, false);
 
-void CountDisplay::display(){
-  this->board->setDisplayToDecNumber(this->count, 0, false);
   this->show_LEDs?
     this->board->setLEDs(1 << (count % 8)):
     this->board->setLEDs(0);

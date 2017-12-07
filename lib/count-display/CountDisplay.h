@@ -4,10 +4,11 @@
 #include "Arduino.h"
 #include <TM1638.h>
 
+
 class CountDisplay {
   public:
-    CountDisplay(TM1638* board, uint32_t start_count, uint32_t increment); 
-    void update();
+    CountDisplay(TM1638* board, byte number_base);
+    void display(unsigned long);
     void display();
 
   private:
@@ -16,6 +17,8 @@ class CountDisplay {
     boolean show_LEDs;
 
     boolean buttonPressed();
+    byte getLastButtonPress();
+    byte whichButtonPressed();
 
     unsigned long interval;
     unsigned long last_update_millis;
@@ -24,6 +27,8 @@ class CountDisplay {
     unsigned long count;
 
     byte last_button_pressed;
+    byte number_base;
+
 };
 
 #endif
