@@ -23,13 +23,16 @@
 
 */
 
-
 #include <WavePacket.h>
 #include <AutoMap.h>
 
+#include <TM1638.h>
+TM1638 led_board(5, 6, 7, true, 0); // data, clock, strobe, activate, brightness 0-7
+uint32_t count = 1;
+
 // define min/max fundemantal frequency for potentiometer attached to A0
 #define POT_FD 0
-#define MIN_FD 5
+#define MIN_FD 1
 #define MAX_FD 100
 
 // define min/max bandwidth for potentiometer attached to A1
@@ -47,9 +50,11 @@ AutoMap kMapBw(0, 1023, MIN_BW, MAX_BW);
 AutoMap kMapCf(0, 1023, MIN_CF, MAX_CF);
 
 WavePacket <DOUBLE> wavey; // DOUBLE selects 2 overlapping streams
+//WavePacket <SINGLE> wavey;
 
 void setup() {
   // wait before starting Mozzi to receive analog reads, so AutoRange will not get 0
+  led_board.setDisplayToDecNumber(count, 0, false);
   delay(200);
   startMozzi();
 }
@@ -59,11 +64,15 @@ void updateControl() {
   int bandwidth   = kMapBw(mozziAnalogRead(POT_BW));
   int centre_freq = kMapCf(mozziAnalogRead(POT_CF));
 
+  led_board.setDisplayToDecNumber(fundamental, 0, false);
+
+
   wavey.set(fundamental, bandwidth, centre_freq);
 }
 
 int updateAudio() {
   return wavey.next() >> 8; // >>8 for AUDIO_MODE STANDARD
+
 }
 
 void loop() {
