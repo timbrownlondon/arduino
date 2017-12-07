@@ -21,11 +21,9 @@ class CountDisplay {
     unsigned long last_update_millis;
     unsigned long last_press_millis;
     unsigned long debounce_millis;
+    unsigned long count;
 
-    uint32_t count;
-    uint32_t increment;
-    byte last_press;
-    byte last_button;
+    byte last_button_pressed;
 };
 
 #endif

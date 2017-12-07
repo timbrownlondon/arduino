@@ -11,10 +11,9 @@
 #define MIN_INTERVAL    125
 #define DEBOUNCE_MILLIS 250
 
-CountDisplay::CountDisplay(TM1638* board, uint32_t start, uint32_t i) {
+CountDisplay::CountDisplay(TM1638* board, uint32_t start) {
   this->board = board;
   this->count = start;
-  this->increment = i;
 
   // how often will display change (millis)
   this->interval = MAX_INTERVAL; 
@@ -58,6 +57,23 @@ boolean CountDisplay::buttonPressed() {
   return false;
 }
 
+byte CountDisplay::getLastButtonPress() {
+  if(millis() - this->last_press_millis > DEBOUNCE_MILLIS) {
+    this->last_press_millis = millis();
+
+    byte i = this->board->getButtons();
+
+    if(i > 0){
+      this->last_button_pressed = i;
+    }
+  }
+  return this->last_button_pressed;
+}
+
+byte CountDisplay::whichButtonPressed(){
+
+
+}
 
 void CountDisplay::update(){
   if(this->buttonPressed()){
@@ -66,7 +82,7 @@ void CountDisplay::update(){
 
   if(this->is_running and millis() > this->last_update_millis + this->interval){
     this->last_update_millis = millis(); 
-    this->count += this->increment;
+    this->count++;
     this->display();
   }
 }

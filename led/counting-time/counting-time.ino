@@ -1,6 +1,6 @@
 // https://github.com/rjbatista/tm1638-library
 #include <TM1638.h>
-
+#include <Timer.h>
 #include <CountDisplay.h>
 
 // data pin 8, clock pin 9, strobe pin 6/7, activate, brightness 0-7
@@ -10,7 +10,12 @@ TM1638 board_2(8, 9, 6, true, 0);
 CountDisplay counter_1(&board_1, 0, 1);
 CountDisplay counter_2(&board_2, 99999999, -1);
 
+
+Timer t;
+unsigned long count = 0;
+
 void setup() {
+  t.every(1000, count++);
   counter_1.display();
   counter_2.display();
 }
