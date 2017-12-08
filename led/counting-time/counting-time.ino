@@ -9,19 +9,21 @@ TM1638 board_2(8, 9, 6, true, 0);
 
 TimerOne t;
 
-CountDisplay counter_1(&board_1, 10);
-CountDisplay counter_2(&board_2, 16);
+CountDisplay counter_1(&board_1);
+CountDisplay counter_2(&board_2);
 
-unsigned long count = 0;
+unsigned long count = (3600 * 23L) + 3590;
 
 void setup() {
   t.initialize(1000000);       // every second
   t.attachInterrupt(count_up); // call function on interrupt
+  Serial.begin(9600);
+  Serial.println(count);
 }
 
 void loop() {
-  counter_1.display(count);
-  counter_2.display(count);
+  counter_1.display_seconds(count);
+  counter_2.display_days_hours(count);
 }
 
 void count_up() {

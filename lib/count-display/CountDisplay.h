@@ -4,12 +4,11 @@
 #include "Arduino.h"
 #include <TM1638.h>
 
-
 class CountDisplay {
   public:
-    CountDisplay(TM1638* board, byte number_base);
-    void display(unsigned long);
-    void display();
+    CountDisplay(TM1638* board);
+    void display_seconds(unsigned long);
+    void display_days_hours(unsigned long);
 
   private:
     TM1638* board;
@@ -24,10 +23,10 @@ class CountDisplay {
     unsigned long last_update_millis;
     unsigned long last_press_millis;
     unsigned long debounce_millis;
-    unsigned long count;
+    int days;
+    int hours;
 
     byte last_button_pressed;
-    byte number_base;
 
 };
 
