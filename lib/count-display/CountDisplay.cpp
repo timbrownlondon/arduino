@@ -82,7 +82,6 @@ void CountDisplay::display_days_hours(unsigned long count){
   int hours = (count/3600L) % 24;
 
   if(hours != this->hours){
-    //  this->board->setDisplayToDecNumberAt(hours, 0, 5, false);
 
     hours / 10 > 0?
       this->board->setDisplayDigit(hours / 10, 5, false):
@@ -108,4 +107,8 @@ void CountDisplay::display_days_hours(unsigned long count){
     this->board->setDisplayToString("d", 0, 3);
     this->days = days;
   }
+
+  // show hour progress as incrementing LEDs
+  byte hour_part = (count % 3600L) / 450;
+  this->board->setLEDs((1 << hour_part) - 1);
 }
