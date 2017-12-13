@@ -13,9 +13,6 @@ TimerOne t;
 CountDisplay counter_1(&board_1);
 CountDisplay counter_2(&board_2);
 
-// we write current value of count to eeprom memory
-// every UPDATE_INTERVAL seconds
-#define UPDATE_INTERVAL 60 * 15
 unsigned long count;
 
 void setup() {
@@ -24,10 +21,7 @@ void setup() {
 
   count = readLongAt(0);
   Serial.begin(9600);
-  Serial.print("count: ");
   Serial.println(count);
-  Serial.print("update: ");
-  Serial.println(UPDATE_INTERVAL);
 }
 
 void loop() {
@@ -37,8 +31,9 @@ void loop() {
 
 void count_up() {
   count++;
-  // write current value of count to EEPROM
-  if (count % UPDATE_INTERVAL == 0) {
+  // write current value of count to EEPROM when divisible by 256 (every 4mins or so)
+  // the count is reset to that value after a restart
+  if ((count & 0xFF) == 0) {
     writeLongAt(0, count);
     Serial.println(count);
   }
