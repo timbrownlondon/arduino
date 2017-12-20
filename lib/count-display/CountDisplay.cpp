@@ -109,6 +109,7 @@ void CountDisplay::display_days_hours(unsigned long count){
   }
 
   // show hour progress as incrementing LEDs
-  byte hour_part = (count % 3600L) / 450;
+  byte hour_part = (count % 3600L) / 400;
   this->board->setLEDs((1 << hour_part) - 1);
 }
+
