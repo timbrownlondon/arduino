@@ -32,6 +32,12 @@ void CountDisplay::display_seconds(unsigned long count){
   this->board->setLEDs(1 << (count - 1) % 8);
 }
 
+void CountDisplay::display_days_decimal(unsigned long count){
+  unsigned long days = (count * 1000L) / (36 * 24);
+  this->board->setDisplayToDecNumber(days, 32, false);
+  this->board->setLEDs(0);
+}
+
 void CountDisplay::display_days_hours(unsigned long count){
 
   int hours = (count/3600L) % 24;

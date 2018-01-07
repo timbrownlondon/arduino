@@ -9,6 +9,7 @@ class CountDisplay {
     CountDisplay(TM1638* board);
     void display_seconds(unsigned long);
     void display_days_hours(unsigned long);
+    void display_days_decimal(unsigned long);
     byte getButton();
 
   private:
