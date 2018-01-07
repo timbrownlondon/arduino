@@ -29,26 +29,7 @@ void loop() {
   counter_1.display_seconds(count);
   counter_2.display_days_hours(count);
 
-  byte button = counter_1.getButton();
-
-  if (button > 0) {
-    save_count_to_eeprom = false;
-
-    unsigned long n = 1;
-    for (int i = button; i > 0; i--) {
-      n *= 10L;
-    }
-    count = n - 9;
-    Serial.println(button);
-    Serial.println(count);
-  }
-
-  // click button 8 on lower display
-  // to reset count to one million
-  if (counter_2.getButton() == 8) {
-    count = 1000000;
-    EepromAPI::writeLongAt(0, count);
-  }
+  // byte button = counter_1.getButton();
 }
 
 void count_up() {
@@ -57,8 +38,8 @@ void count_up() {
     t.stop();
   }
 
-    // write current value of count to EEPROM when divisible by 256 (every 4mins or so)
-    // the count is reset to that value after a restart
+  // write current value of count to EEPROM when divisible by 256 (every 4mins or so)
+  // the count is reset to that value after a restart
   if ((count & 0xFF) == 0 and save_count_to_eeprom) {
     EepromAPI::writeLongAt(0, count);
       Serial.print("save count: ");
