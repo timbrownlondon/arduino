@@ -27,7 +27,7 @@ void loop() {
     points[i].position += points[i].speed;
     if (points[i].position >= 14 * 16) {
       points[i].position = 0;
-      points[i].speed = random(3, 16);
+      points[i].speed = random(1, 10);
       points[i].is_on = not points[i].is_on;
     }
     uint8_t brightness = (points[i].is_on ? random(1, SHADES) : 0);
