@@ -23,7 +23,6 @@
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
 unsigned long button_press_millis = millis();
-unsigned long last_move_millis = millis();
 
 #define DEBOUNCE_MILLIS 200
 
@@ -42,7 +41,13 @@ const uint16_t colours[] = {
   matrix.Color(255, 0, 255),
   matrix.Color(0, 255, 255),
 
-  matrix.Color(0, 0, 0)
+  matrix.Color(255, 127, 0),
+  matrix.Color(255, 0, 127),
+  matrix.Color(0, 127, 255),
+  
+  matrix.Color(127, 0, 255),
+  matrix.Color(0, 255, 127),
+  matrix.Color(127, 255, 0),
 };
 
 const uint8_t spiral[][2] = {
@@ -61,30 +66,39 @@ const uint8_t spiral[][2] = {
 #define BUTTON 10
 #define LED 13
 
-volatile boolean light_on = true;
-volatile int money = 100;
-volatile byte state = LOW;
-volatile byte pixel = 0;
-volatile uint16_t colour = 0;
+volatile byte money = 250;
+volatile boolean showing = false;
 
-String line1 = "";
-String line2 = "";
+void pir_on() {
+  if (money < 1 or showing) {
+    return;
+  }
 
-void update_counter() {
-  money--;
-  pixel = 0;
+  showing = true;
+  for (byte t = 0; t < 20; t++) {
+    for (byte i = 0; i < 64; i++) {
+      // matrix.drawPixel(spiral[i][0], spiral[i][1], random(65536));
+      matrix.drawPixel(spiral[i][0], spiral[i][1], colours[random(12)]);
+      matrix.show();
+    }
+  }
   matrix.fillScreen(0);
-  colour = 0;
   matrix.show();
+  money--;
+  showing = false;
 }
 
+void pir_off() {
+  digitalWrite(LED, LOW);
+}
 
 void setup() {
   // set interrupt service routine for passive infra-red sensor
   pinMode(PIR, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIR), update_counter, RISING);
+  attachInterrupt(digitalPinToInterrupt(PIR), pir_on, RISING);
+  //attachInterrupt(digitalPinToInterrupt(PIR), pir_off, FALLING);
 
-  //pinMode(BUTTON, INPUT);
+  pinMode(BUTTON, INPUT);
   pinMode(LED, OUTPUT);
 
   matrix.begin();
@@ -98,51 +112,32 @@ void setup() {
 }
 
 void loop() {
-  // toggle backlight when button is pressed
-  if (digitalRead(BUTTON) and millis() - button_press_millis > DEBOUNCE_MILLIS) {
+  /* add money when button is pressed
+    if (digitalRead(BUTTON) and millis() - button_press_millis > DEBOUNCE_MILLIS) {
     button_press_millis = millis();
-    money = 100;
-    // light_on = not light_on;
-    // light_on ? lcd.backlight() : lcd.noBacklight();
+    if (money < 246) {
+      money += 10;
+    }
+    }
+  */
+  if (digitalRead(BUTTON)) {
+    money = 250;
   }
-
   show_money();
-  // matrix.drawPixel(random(8), random(8), colours[random(6)]);
-  // matrix.drawPixel(random(8), random(8), random(65536));
-
-  matrix.drawPixel(spiral[pixel][0], spiral[pixel][1], colour);
-
-  if (pixel++ > 63) {
-    pixel = 0;
-    colour = random(65536);
-  }
-
-  matrix.show();
 }
 
 
 void show_money() {
   lcd.setCursor(0, 0);
+  lcd.print("balance ");
   if (money < 0) {
-    money = 0;
+    lcd.print("-");
   }
-  lcd.print("balance $" + String(money) + ".00  ");
-  lcd.setCursor(0, 1);
+  lcd.print("$" + String(abs(money)) + ".00  ");
 
-  if (money < 1) {
-    lcd.print("seek assistance ");
-    return;
-  }
-  unsigned long t = millis() / 1000;
-  if ( t > 3600 ) {
-    t /= 60;
-    lcd.print(String(t / 60) + " hr " + String(t % 60) + " min      ");
-  }
-  else {
-    if ( t > 59 ) {
-      lcd.print(String(t / 60) + " min ");
-    }
-    lcd.print(String(t % 60) + " sec      ");
-  }
+  lcd.setCursor(0, 1);
+  money < 1 ?
+  lcd.print("seek assistance ") :
+  lcd.print("                ");
 }
 
