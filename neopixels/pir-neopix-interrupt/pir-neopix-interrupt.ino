@@ -29,25 +29,22 @@ Adafruit_NeoMatrix matrix
                        NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
                        NEO_GRB         + NEO_KHZ800);
 
-const uint16_t colours[] = {
-  matrix.Color(255, 0, 0),
-  matrix.Color(0, 255, 0),
-  matrix.Color(0, 0, 255),
+const uint16_t all_colours[] = {
+  matrix.Color(255, 0, 0), // red
+  matrix.Color(0, 255, 0), // green
+  matrix.Color(0, 0, 255), // blue
 
-  matrix.Color(255, 255, 0),
-  matrix.Color(255, 0, 255),
-  matrix.Color(0, 255, 255),
+  matrix.Color(255, 255, 0), // yellow
+  matrix.Color(255, 0, 255), // pink
+  matrix.Color(0, 255, 255), // cyan
 
-  matrix.Color(255, 127, 0),
-  matrix.Color(255, 0, 127),
-  matrix.Color(0, 127, 255),
+  matrix.Color(255, 127, 0), // orange
 
-  matrix.Color(127, 0, 255),
-  matrix.Color(0, 255, 127),
-  matrix.Color(127, 255, 0),
 };
 
-// co-ords of 8x8 matrix ordered as clockwise spiral 
+uint16_t colours[2];
+
+// co-ords of 8x8 matrix ordered as clockwise spiral
 const uint8_t spiral[][2] = {
   {3, 3}, {4, 3},
   {4, 4}, {3, 4}, {2, 4}, {2, 3},
@@ -62,8 +59,10 @@ const uint8_t spiral[][2] = {
 
 #define PIR 3       // pin connected to Passive InfraRed sensor
 #define BUTTON 10
+#define MIN_CASH -5
 
-uint8_t money = 250;
+
+int8_t money = 5;
 int8_t pixel = 0;
 
 volatile boolean movement_detected = false;
@@ -84,46 +83,67 @@ void setup() {
 
   matrix.begin();
   matrix.setBrightness(4);
+
+  for (int8_t i = 0; i < 7; i++) {
+    matrix.fillScreen(all_colours[i]);
+    matrix.show();
+    delay(2000);
+  }
+
   matrix.fillScreen(0);
   matrix.show();
 
   lcd.init();
   lcd.display();
-  lcd.backlight();
+  lcd.noBacklight();
   show_money(money);
 }
 
 void loop() {
   // add money when button is pressed
-  if (digitalRead(BUTTON) and money < 255) {
+  if (digitalRead(BUTTON) and money < 120) {
+    lcd.backlight();
     show_money(++money);
   }
 
+  // start a spiral animation
   if (movement_detected and ! animation_running) {
-    show_money(--money);
     animation_running = true;
     animation_growing = true;
+    lcd.backlight();
     pixel = 0;
+
+    colours[0] = all_colours[random(7)];
+    colours[1] = all_colours[random(7)];
   }
 
   if (animation_running) {
-    matrix.drawPixel(spiral[pixel][0], spiral[pixel][1],
-                     animation_growing ? colours[random(12)] : 0
-                    );
+    uint16_t colour = 0; // that means pixel off
+    if (money > MIN_CASH and animation_growing) {
+      colour = colours[pixel % 2];
+    }
+    matrix.drawPixel(spiral[pixel][0], spiral[pixel][1], colour);
+
     matrix.show();
 
     animation_growing ? pixel++ : pixel--;
 
     if (pixel == 64) {
       animation_growing = false;
+
+      if (money > MIN_CASH ) {
+        money--;
+      }
+      show_money(money);
     }
 
     if (pixel < 0) {
       animation_running = false;
       movement_detected = false;
+      lcd.noBacklight();
     }
   }
-  delay(50);
+  delay(40);
 }
 
 
@@ -137,7 +157,7 @@ void show_money(int money) {
 
   lcd.setCursor(0, 1);
   money < 1 ?
-  lcd.print("Seek assistance ") :
+  lcd.print("Seek Assistance ") :
   lcd.print("                ");
 }
 
