@@ -56,12 +56,14 @@ void CountDisplay::display_days_hours(unsigned long count){
   int days = count/(3600 * 24L);
   if(days != this->days){
     
-    days / 100 > 0?
-      this->board->setDisplayDigit(days / 100, 0, false):
+    int hundreds = days / 100;
+    hundreds > 0 ?
+      this->board->setDisplayDigit(hundreds, 0, false):
       this->board->clearDisplayDigit(0, false);
 
-    days / 10 > 0?
-      this->board->setDisplayDigit(days / 10, 1, false):
+    int tens = (days / 10) % 10;
+    hundreds > 0 || tens > 0?
+      this->board->setDisplayDigit(tens, 1, false):
       this->board->clearDisplayDigit(1, false);
 
     this->board->setDisplayDigit(days % 10, 2, false);
