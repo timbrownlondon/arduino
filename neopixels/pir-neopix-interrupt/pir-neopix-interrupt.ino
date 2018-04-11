@@ -39,6 +39,8 @@ const uint16_t all_colours[] = {
   matrix.Color(0, 255, 255), // cyan
 
   matrix.Color(255, 127, 0), // orange
+  matrix.Color(0, 0, 0), // off
+
 
 };
 
@@ -62,7 +64,7 @@ const uint8_t spiral[][2] = {
 #define MIN_CASH -5
 
 
-int8_t money = 5;
+int16_t money = 5000;
 int8_t pixel = 0;
 
 volatile boolean movement_detected = false;
@@ -80,28 +82,25 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PIR), pir_on, RISING);
 
   pinMode(BUTTON, INPUT);
-
-  matrix.begin();
-  matrix.setBrightness(4);
-
-  for (int8_t i = 0; i < 7; i++) {
-    matrix.fillScreen(all_colours[i]);
-    matrix.show();
-    delay(2000);
-  }
-
-  matrix.fillScreen(0);
-  matrix.show();
-
+  
   lcd.init();
   lcd.display();
   lcd.noBacklight();
   show_money(money);
+
+  matrix.begin();
+  matrix.setBrightness(4);
+
+  for (int8_t i = 0; i < 8; i++) {
+    matrix.fillScreen(all_colours[i]);
+    matrix.show();
+    delay(1000);
+  }
 }
 
 void loop() {
   // add money when button is pressed
-  if (digitalRead(BUTTON) and money < 120) {
+  if (digitalRead(BUTTON) and money < 9999) {
     lcd.backlight();
     show_money(++money);
   }
@@ -153,11 +152,11 @@ void show_money(int money) {
   if (money < 0) {
     lcd.print("-");
   }
-  lcd.print("$" + String(abs(money)) + ".00  ");
+  lcd.print("$" + String(abs(money)));
 
   lcd.setCursor(0, 1);
   money < 1 ?
-  lcd.print("Seek Assistance ") :
+  lcd.print("Press the button") :
   lcd.print("                ");
 }
 
