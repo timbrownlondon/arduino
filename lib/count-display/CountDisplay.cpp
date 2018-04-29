@@ -28,7 +28,7 @@ byte CountDisplay::getButton() {
 }
 
 void CountDisplay::display_seconds(unsigned long count){
-  this->board->setDisplayToDecNumber(count, 0, false);
+  this->board->setDisplayToDecNumber(count, 0x48, false);
   this->board->setLEDs(1 << (count - 1) % 8);
 }
 
