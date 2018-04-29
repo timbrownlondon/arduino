@@ -17,9 +17,19 @@ byte sprites[2][2][8] = {
   }
 };
 
-#define SWITCH_PIN 2
-#define BOARD_LED 13
+int notes[] = {//31, 33, 35, 37, 39, 41, 44, 46, 49, 52, 55, 58, 62, 65, 69, 73, 78, 82,
+  /*
+    F     F#     G   G#      A    A#   B    C    C#   D    D#   E
+  */
+  87,     93,   98,  104,  110,  117, 123, 131, 139, 147, 156, 165,
+  175,   185,  196,  208,  220,  233, 247, 262, 277, 294, 311, 330,
+  349,   370,  392,  415,  440,  466, 494, 523, 554, 587, 622, 659,
+  698,   740,  784,  831,  880,  932, 988, 1047, 1109, 1175, 1245, 1319,
+  1397, 1480, 1568, 1661, 1760, 1865, 1976, 2093, 2217, 2349, 2489, 2637,
+  2794, 2960, 3136, 3322, 3520, 3729, 3951, 4186, 4435, 4699, 4978, 5257
+};
 
+#define SWITCH_PIN 2
 
 byte sprite_index = 0;
 
@@ -40,12 +50,10 @@ void setup() {
   // attach interrupt function, click(), to the micro switch
   pinMode(SWITCH_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(SWITCH_PIN), click, RISING);
-  pinMode(BOARD_LED, OUTPUT);
 }
 
 void click() {
   switch_triggered = true;
-  digitalWrite(BOARD_LED, HIGH);
 }
 
 
@@ -85,12 +93,11 @@ void loop() {
 }
 
 void run_animation() {
-
   for (byte x = 0; x < 33; x++) {
     show_sprite_at_x(x, sprites[sprite_index][ x % 2]);
-    delay(500);
-    digitalWrite(BOARD_LED, LOW);
-
+    tone(9, notes[random(5 * 12)]);
+    delay(100);
   }
   sprite_index = (sprite_index + 1) % 2;
+  noTone(9);
 }
