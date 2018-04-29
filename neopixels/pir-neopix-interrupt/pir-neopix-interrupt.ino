@@ -24,7 +24,7 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
 // this runs the 8x8 Pimoroni NeoPixel matrix
 Adafruit_NeoMatrix matrix
-  = Adafruit_NeoMatrix(8, 8, 2,
+  = Adafruit_NeoMatrix(8, 8, 4,
                        NEO_MATRIX_TOP  + NEO_MATRIX_RIGHT +
                        NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
                        NEO_GRB         + NEO_KHZ800);
@@ -40,8 +40,6 @@ const uint16_t all_colours[] = {
 
   matrix.Color(255, 127, 0), // orange
   matrix.Color(0, 0, 0), // off
-
-
 };
 
 uint16_t colours[2];
@@ -59,34 +57,49 @@ const uint8_t spiral[][2] = {
 };
 
 
-#define PIR 3       // pin connected to Passive InfraRed sensor
-#define BUTTON 10
-#define MIN_CASH -5
+#define INFRED 3       // pin connected to Passive InfraRed sensor
+#define BUTTON 2
+#define MAX_CREDITS 1000
+
+#define BACKLIGHT_TIMEOUT 60000 // switch off lcd light after a minute
 
 
-int16_t money = 5000;
+volatile boolean button_pressed = false;
+int16_t credits = MAX_CREDITS;
 int8_t pixel = 0;
 
 volatile boolean movement_detected = false;
 boolean animation_running = false;
 boolean animation_growing = true;
+volatile byte state = LOW;
+
+unsigned long backlight_on_millis = 0;
 
 void pir_on() {
   movement_detected = true;
 }
 
+void more_credits() {
+  button_pressed = true;
+}
 
 void setup() {
   // set interrupt service routine for passive infra-red sensor
-  pinMode(PIR, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIR), pir_on, RISING);
+  pinMode(INFRED, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(INFRED), pir_on, RISING);
 
   pinMode(BUTTON, INPUT);
-  
+  attachInterrupt(digitalPinToInterrupt(BUTTON), more_credits, RISING);
+
   lcd.init();
   lcd.display();
-  lcd.noBacklight();
-  show_money(money);
+  lcd.backlight();
+  show_credits(credits);
+
+  lcd.setCursor(0, 0);
+  lcd.print("READY PLAYER ONE");
+  lcd.setCursor(0, 1);
+  lcd.print("  credits: ");
 
   matrix.begin();
   matrix.setBrightness(4);
@@ -99,17 +112,32 @@ void setup() {
 }
 
 void loop() {
-  // add money when button is pressed
-  if (digitalRead(BUTTON) and money < 9999) {
+  // add credits when button is pressed
+  if (button_pressed and credits < MAX_CREDITS) {
     lcd.backlight();
-    show_money(++money);
+    backlight_on_millis = millis();
+    credits = MAX_CREDITS;
+    show_credits(credits);
+    button_pressed = false;
+  }
+
+  // switch lcd light if no recent activity
+  if (millis() - backlight_on_millis > BACKLIGHT_TIMEOUT) {
+    lcd.noBacklight();
   }
 
   // start a spiral animation
   if (movement_detected and ! animation_running) {
+    lcd.backlight();
+    backlight_on_millis = millis();
+
+    if (credits > 0 ) {
+      credits--;
+    }
+    show_credits(credits);
+
     animation_running = true;
     animation_growing = true;
-    lcd.backlight();
     pixel = 0;
 
     colours[0] = all_colours[random(7)];
@@ -118,46 +146,31 @@ void loop() {
 
   if (animation_running) {
     uint16_t colour = 0; // that means pixel off
-    if (money > MIN_CASH and animation_growing) {
+    if (credits > 0 and animation_growing) {
       colour = colours[pixel % 2];
     }
     matrix.drawPixel(spiral[pixel][0], spiral[pixel][1], colour);
-
     matrix.show();
 
     animation_growing ? pixel++ : pixel--;
 
     if (pixel == 64) {
       animation_growing = false;
-
-      if (money > MIN_CASH ) {
-        money--;
-      }
-      show_money(money);
     }
 
     if (pixel < 0) {
       animation_running = false;
       movement_detected = false;
-      lcd.noBacklight();
     }
   }
   delay(40);
 }
 
 
-void show_money(int money) {
-  lcd.setCursor(0, 0);
-  lcd.print("Balance ");
-  if (money < 0) {
-    lcd.print("-");
-  }
-  lcd.print("$" + String(abs(money)));
-
-  lcd.setCursor(0, 1);
-  money < 1 ?
-  lcd.print("Press the button") :
-  lcd.print("                ");
+void show_credits(int credits) {
+  lcd.setCursor(11, 1);
+  lcd.print(credits);
+  lcd.print("   ");
 }
 
 
