@@ -1,6 +1,9 @@
 /*
-   from bembu/wemos_oled_clock_ntp_synced.ino
-   - https://gist.github.com/bembu/04d324cda49f3b279c4eb901ea2e2ce7
+    refer to the Timelib which has example NTP code
+      git@github.com:PaulStoffregen/Time.git
+
+    also see bembu/wemos_oled_clock_ntp_synced.ino
+    - https://gist.github.com/bembu/04d324cda49f3b279c4eb901ea2e2ce7
 */
 
 #include <TimeLib.h>
@@ -38,7 +41,7 @@ void setup() {
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(100);
-    Serial.print(".");
+    lcd.print(".");
   }
   lcd.setCursor(0, 0);
   lcd.print(WiFi.localIP());
@@ -70,7 +73,8 @@ void loop() {
           lcd.print("      ");
       }
       lcd.setCursor(3, 1);
-      lcd.print(epochDisplay(now()));
+      // now() is adjusted for timeZone - we have to undo that to show the real epoch value
+      lcd.print(epochDisplay(now() - timeZone * SECS_PER_HOUR));
     }
   }
 }
@@ -98,27 +102,38 @@ String epochDisplay(time_t epoch) {
   time_t thousands = (epoch / 1000) % 1000;
   time_t millions = (epoch / 1000000) % 1000;
   time_t billions = (epoch / 1000000000);
-  return String(billions) + "," + String(millions) + "," + String(thousands) + "," + String(units);
+  return String(billions) + "," + withLeadingZeros(millions) + "," + withLeadingZeros(thousands) + "," + withLeadingZeros(units);
 }
 
 String timeStr() {
   return leftPad(withLeadingZero(hour()) +
                  ":" +
                  withLeadingZero(minute()) +
-                 ":"
-                 + withLeadingZero(second()));
+                 ":" +
+                 withLeadingZero(second()));
 }
 
-
+// add one zero padding if need be
 String withLeadingZero(byte digits) {
   return digits < 10 ?
          "0" + String(digits) :
          String(digits);
 }
 
+// add two zeros padding if need be
+String withLeadingZeros(time_t digits) {
+  if (digits < 10) {
+    return "00" + String(digits);
+  }
+  if (digits < 100) {
+    return "0" + String(digits);
+  }
+  return String(digits);
+}
+
 /*-------- NTP code ----------*/
 
-const int NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
+const int NTP_PACKET_SIZE = 48;     // NTP time is in the first 48 bytes of message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
 
 time_t getNtpTime() {
@@ -145,16 +160,15 @@ time_t getNtpTime() {
 }
 
 // send an NTP request to the time server at the given address
-void sendNTPpacket(IPAddress &address)
-{
+void sendNTPpacket(IPAddress & address) {
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
   // Initialize values needed to form NTP request
   // (see URL above for details on the packets)
   packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;     // Stratum, or type of clock
-  packetBuffer[2] = 6;     // Polling Interval
-  packetBuffer[3] = 0xEC;  // Peer Clock Precision
+  packetBuffer[1] = 0;            // Stratum, or type of clock
+  packetBuffer[2] = 6;            // Polling Interval
+  packetBuffer[3] = 0xEC;         // Peer Clock Precision
   // 8 bytes of zero for Root Delay & Root Dispersion
   packetBuffer[12]  = 49;
   packetBuffer[13]  = 0x4E;
