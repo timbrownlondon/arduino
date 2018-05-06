@@ -44,21 +44,25 @@ void setup() {
     lcd.print(".");
   }
   lcd.setCursor(0, 0);
-  lcd.print(WiFi.localIP());
+  lcd.print(centre(WiFi.localIP().toString()));
 
   Udp.begin(localPort);
   setSyncProvider(getNtpTime);
   delay(2000);
 }
 
-time_t prevDisplay = 0;
+time_t lastNow = 0;
 
 void loop() {
   if (timeStatus() != timeNotSet) {
-    if (now() != prevDisplay) { //update the display only if time has changed
-      prevDisplay = now();
+    if (now() != lastNow) { //update the display only if time has changed
+      lastNow = now();
+
       lcd.setCursor(0, 0);
-      switch (now() / 10 % 4) {
+      lcd.print("    " + timeStr() + "    ");
+
+      lcd.setCursor(0, 1);
+      switch (lastNow / 10 % 4) {
         case 0:
           lcd.print(dayStr());
           break;
@@ -66,15 +70,12 @@ void loop() {
           lcd.print(dateStr());
           break;
         case 2:
-          lcd.print(timeStr());
+          // now() is adjusted for timeZone - we have to undo that to show the real epoch value
+          lcd.print(epochDisplay(now() - timeZone * SECS_PER_HOUR));
           break;
         case 3:
-          lcd.print(WiFi.localIP());
-          lcd.print("      ");
+          lcd.print(centre(WiFi.localIP().toString()));
       }
-      lcd.setCursor(3, 1);
-      // now() is adjusted for timeZone - we have to undo that to show the real epoch value
-      lcd.print(epochDisplay(now() - timeZone * SECS_PER_HOUR));
     }
   }
 }
@@ -86,15 +87,22 @@ String leftPad(String str) {
   return str;
 }
 
+String centre(String str) {
+  while (str.length() < 16) {
+    str = " " + str + " ";
+  }
+  return str;
+}
+
 String dayStr() {
-  return leftPad(String(dayStr(weekday())));
+  return centre(String(dayStr(weekday())));
 }
 String dateStr() {
-  return leftPad(String(day()) +
-                 " " +
-                 String(monthStr(month())) +
-                 " " +
-                 String(year()));
+  return centre(String(day()) +
+                " " +
+                String(monthStr(month())) +
+                " " +
+                String(year()));
 }
 
 String epochDisplay(time_t epoch) {
@@ -102,15 +110,18 @@ String epochDisplay(time_t epoch) {
   time_t thousands = (epoch / 1000) % 1000;
   time_t millions = (epoch / 1000000) % 1000;
   time_t billions = (epoch / 1000000000);
-  return String(billions) + "," + withLeadingZeros(millions) + "," + withLeadingZeros(thousands) + "," + withLeadingZeros(units);
+  return "  " + String(billions) + "," +
+         withLeadingZeros(millions) + "," +
+         withLeadingZeros(thousands) + "," +
+         withLeadingZeros(units) + " ";
 }
 
 String timeStr() {
-  return leftPad(withLeadingZero(hour()) +
-                 ":" +
-                 withLeadingZero(minute()) +
-                 ":" +
-                 withLeadingZero(second()));
+  return withLeadingZero(hour()) +
+         ":" +
+         withLeadingZero(minute()) +
+         ":" +
+         withLeadingZero(second());
 }
 
 // add one zero padding if need be
@@ -131,7 +142,7 @@ String withLeadingZeros(time_t digits) {
   return String(digits);
 }
 
-/*-------- NTP code ----------*/
+// -------- NTP code ----------
 
 const int NTP_PACKET_SIZE = 48;     // NTP time is in the first 48 bytes of message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
