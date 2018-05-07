@@ -16,9 +16,14 @@ CountDisplay counter_2(&board_2);
 unsigned long count;
 boolean save_count_to_eeprom = true;
 
+#define BUZZER 10
+boolean trigger_buzzer = false;
+
 void setup() {
   t.initialize(1000000);       // interrupt every second
   t.attachInterrupt(count_up); // call function on interrupt
+
+  pinMode(BUZZER, OUTPUT);
 
   count = EepromAPI::readLongAt(0);
   Serial.begin(9600);
@@ -29,20 +34,31 @@ void loop() {
   counter_1.display_seconds(count);
   counter_2.display_days_hours(count);
 
-  // byte button = counter_1.getButton();
+  if (counter_1.getButton() == 1) {
+    count = 12339980;
+  }
 }
 
 void count_up() {
   count++;
-  if (count == 99999999){
-    t.stop();
+  
+  /*
+    if (count == 99999999) {
+      t.stop();
+    }
+  */
+
+  // sound pips from ...9991 to ...0000
+  if (count % 10000 > 9990) {
+    tone(BUZZER, 262, 50);
+  }
+  else if (count % 10000 == 0) {
+    tone(BUZZER, 262, 500);
   }
 
   // write current value of count to EEPROM when divisible by 256 (every 4mins or so)
   // the count is reset to that value after a restart
   if ((count & 0xFF) == 0 and save_count_to_eeprom) {
     EepromAPI::writeLongAt(0, count);
-      Serial.print("save count: ");
-      Serial.println(count);
-    }
+  }
 }
