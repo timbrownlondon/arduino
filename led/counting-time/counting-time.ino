@@ -16,8 +16,17 @@ CountDisplay counter_2(&board_2);
 unsigned long count;
 boolean save_count_to_eeprom = true;
 
-#define BUZZER 10
+# define BUZZER 10
+# define PIPS_INTERVAL 10000L // sound pips every ten thousand seconds
+
 boolean trigger_buzzer = false;
+
+int scale[] = {
+  //C    D    E    F    G    A    B
+  131, 147, 165, 175, 196, 220, 247,
+  262, 294, 330, 355, 392, 440, 494,
+  523, 587
+};
 
 void setup() {
   t.initialize(1000000);       // interrupt every second
@@ -34,26 +43,31 @@ void loop() {
   counter_1.display_seconds(count);
   counter_2.display_days_hours(count);
 
-  if (counter_1.getButton() == 1) {
-    count = 12339980;
+  byte note = counter_1.getButton();
+  if (counter_2.getButton()) {
+    note += 8 + counter_2.getButton();
+  }
+
+  if (note) {
+    tone(BUZZER, scale[note - 1], 900);
   }
 }
 
 void count_up() {
   count++;
-  
+
   /*
     if (count == 99999999) {
       t.stop();
     }
   */
 
-  // sound pips from ...9991 to ...0000
-  if (count % 10000 > 9990) {
-    tone(BUZZER, 262, 50);
+  // sound pips as clock rolls over PIPS_INTERVAL boundaries
+  if ((count % PIPS_INTERVAL) > (PIPS_INTERVAL - 10)) {
+    tone(BUZZER, 247, 100);
   }
-  else if (count % 10000 == 0) {
-    tone(BUZZER, 262, 500);
+  else if (count % PIPS_INTERVAL == 0) {
+    tone(BUZZER, 247, 500);
   }
 
   // write current value of count to EEPROM when divisible by 256 (every 4mins or so)
