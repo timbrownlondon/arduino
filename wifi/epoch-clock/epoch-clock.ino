@@ -26,6 +26,7 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);
 IPAddress timeServer(5, 189, 146, 13); // from 0.pool.ntp.org
 
 const int timeZone = 1; // 1 hour = BST
+time_t t = 0;
 
 WiFiUDP Udp;
 unsigned int localPort = 8888;  // local port to listen for UDP packets
@@ -46,37 +47,115 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print(centre(WiFi.localIP().toString()));
 
+  for (byte i = 1; i < 32; i++) {
+    lcd.setCursor(0, 1);
+    lcd.print(centre(String(i) + ordinal_suffix(i)));
+    delay(800);
+  }
+
   Udp.begin(localPort);
   setSyncProvider(getNtpTime);
   delay(2000);
 }
 
-time_t lastNow = 0;
-
 void loop() {
   if (timeStatus() != timeNotSet) {
-    if (now() != lastNow) { //update the display only if time has changed
-      lastNow = now();
+    if (now() != t) { //update the display only if time has changed
+      t = now();
 
-      lcd.setCursor(0, 0);
-      lcd.print("    " + timeStr() + "    ");
-
-      lcd.setCursor(0, 1);
-      switch (lastNow / 10 % 4) {
+      switch (t / 13 % 4) {
         case 0:
-          lcd.print(dayStr());
+          show_epoch(t);
           break;
         case 1:
-          lcd.print(dateStr());
+          show_approx_time(t);
           break;
         case 2:
-          // now() is adjusted for timeZone - we have to undo that to show the real epoch value
-          lcd.print(epochDisplay(now() - timeZone * SECS_PER_HOUR));
+          show_time(t);
           break;
         case 3:
-          lcd.print(centre(WiFi.localIP().toString()));
+          show_date(t);
       }
     }
+  }
+}
+
+void show_time(time_t t) {
+  lcd.setCursor(0, 0);
+  lcd.print(centre(timeStr(t)));
+  lcd.setCursor(0, 1);
+  lcd.print("                ");
+}
+
+void show_epoch(time_t t) {
+  lcd.setCursor(0, 0);
+  lcd.print("   unix epoch   ");
+
+  lcd.setCursor(0, 1);
+  // t is adjusted for timeZone - we have to undo that to show the real epoch value
+  lcd.print(epoch(t - timeZone * SECS_PER_HOUR));
+}
+
+String ordinal_suffix(byte n) {
+  if (n == 1 or n == 21 or n == 31) {
+    return "st";
+  }
+  if (n == 2 or n == 22 ) {
+    return "nd";
+  }
+  if (n == 3 or n == 23) {
+    return "rd";
+  }
+  return "th";
+}
+
+void show_date(time_t t) {
+  lcd.setCursor(0, 0);
+  lcd.print(centre(String(dayStr(weekday(t))) + " " + String(day(t)) + ordinal_suffix(day(t))));
+  lcd.setCursor(0, 1);
+  lcd.print(centre(String(monthStr(month(t))) + " " + String(year(t))));
+}
+
+const String hours[] = {
+  "one", "two", "three", "four", "five", "six",
+  "seven", "eight", "nine", "ten", "eleven", "twelve"
+};
+
+
+void show_approx_time(time_t t) {
+  String hr =  hours[hourFormat12(t) - 1];
+  String next_hr =  hours[hourFormat12(t) % 12];
+  byte m = minute(t);
+
+  if (m < 8) {
+    lcd.setCursor(0, 0);
+    lcd.print(centre(String("about") + " " + hr));
+    lcd.setCursor(0, 1);
+    lcd.print(centre("o'clock"));
+  }
+  else if (m < 22) {
+    lcd.setCursor(0, 0);
+    lcd.print(" about a quarter");
+    lcd.setCursor(0, 1);
+    lcd.print(centre(String("past ") + hr));
+  }
+  else if (m < 38) {
+    lcd.setCursor(0, 0);
+    lcd.print(centre("about half"));
+    lcd.setCursor(0, 1);
+    lcd.print(centre(String("past ") + hr));
+  }
+  else if (m < 54 ) {
+    lcd.setCursor(0, 0);
+    lcd.print(" about a quarter");
+    lcd.setCursor(0, 1);
+    lcd.print(centre(String("to ") + next_hr));
+  }
+  else {
+    lcd.setCursor(0, 0);
+    lcd.print(centre(String("about") + " " + next_hr));
+    lcd.setCursor(0, 1);
+    lcd.print(centre("o'clock"));
   }
 }
 
@@ -94,34 +173,23 @@ String centre(String str) {
   return str;
 }
 
-String dayStr() {
-  return centre(String(dayStr(weekday())));
-}
-String dateStr() {
-  return centre(String(day()) +
-                " " +
-                String(monthStr(month())) +
-                " " +
-                String(year()));
-}
-
-String epochDisplay(time_t epoch) {
-  time_t units = epoch % 1000;
-  time_t thousands = (epoch / 1000) % 1000;
-  time_t millions = (epoch / 1000000) % 1000;
-  time_t billions = (epoch / 1000000000);
+String epoch(time_t t) {
+  time_t units = t % 1000;
+  time_t thousands = (t / 1000) % 1000;
+  time_t millions = (t / 1000000) % 1000;
+  time_t billions = (t / 1000000000);
   return "  " + String(billions) + "," +
          withLeadingZeros(millions) + "," +
          withLeadingZeros(thousands) + "," +
          withLeadingZeros(units) + " ";
 }
 
-String timeStr() {
-  return withLeadingZero(hour()) +
+String timeStr(time_t t) {
+  return withLeadingZero(hour(t)) +
          ":" +
-         withLeadingZero(minute()) +
+         withLeadingZero(minute(t)) +
          ":" +
-         withLeadingZero(second());
+         withLeadingZero(second(t));
 }
 
 // add one zero padding if need be
