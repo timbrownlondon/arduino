@@ -27,12 +27,15 @@ IPAddress timeServer(5, 189, 146, 13); // from 0.pool.ntp.org
 
 const int timeZone = 1; // 1 hour = BST
 time_t t = 0;
+int opt = 0; // set by potentiometer - display epoch or date etc.
+#define BLANK "                "
 
 WiFiUDP Udp;
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
 void setup() {
   Serial.begin(9600);
+  pinMode(A0, INPUT);
 
   lcd.init();
   lcd.display();
@@ -47,33 +50,39 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print(centre(WiFi.localIP().toString()));
 
-  for (byte i = 1; i < 32; i++) {
-    lcd.setCursor(0, 1);
-    lcd.print(centre(String(i) + ordinal_suffix(i)));
-    delay(800);
-  }
-
   Udp.begin(localPort);
   setSyncProvider(getNtpTime);
   delay(2000);
 }
 
+int getOpt() {
+  int val = analogRead(A0);
+  return (val * 5) / 1024;
+}
+
 void loop() {
   if (timeStatus() != timeNotSet) {
-    if (now() != t) { //update the display only if time has changed
-      t = now();
+    time_t n = now();
+    int o = getOpt();
+    if (n != t or o != opt) { //update the display only if time has changed
+      t = n;
+      opt = o;
+      Serial.println(opt);
 
-      switch (t / 13 % 4) {
+      switch (opt) {
         case 0:
           show_epoch(t);
           break;
         case 1:
-          show_approx_time(t);
-          break;
-        case 2:
           show_time(t);
           break;
+        case 2:
+          show_approx_time(t);
+          break;
         case 3:
+          show_day_part(t);
+          break;
+        case 4:
           show_date(t);
       }
     }
@@ -84,7 +93,7 @@ void show_time(time_t t) {
   lcd.setCursor(0, 0);
   lcd.print(centre(timeStr(t)));
   lcd.setCursor(0, 1);
-  lcd.print("                ");
+  lcd.print(BLANK);
 }
 
 void show_epoch(time_t t) {
@@ -157,6 +166,31 @@ void show_approx_time(time_t t) {
     lcd.setCursor(0, 1);
     lcd.print(centre("o'clock"));
   }
+}
+
+void show_day_part(time_t t) {
+  lcd.setCursor(0, 0);
+  lcd.print(centre(day_part(t)));
+  lcd.setCursor(0, 1);
+  lcd.print(BLANK);
+}
+
+
+String day_part(time_t t) {
+  int h = hour(t);
+  if (h < 6) {
+    return "night";
+  }
+  if (h < 12) {
+    return "morning";
+  }
+  if (h < 17) {
+    return "afternoon";
+  }
+  if (h < 23) {
+    return "evening";
+  }
+  return "night";
 }
 
 String leftPad(String str) {
