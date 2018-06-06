@@ -47,8 +47,7 @@ void setup() {
     delay(100);
     lcd.print(".");
   }
-  lcd.setCursor(0, 0);
-  lcd.print(centre(WiFi.localIP().toString()));
+  show_wifi();
 
   Udp.begin(localPort);
   setSyncProvider(getNtpTime);
@@ -64,7 +63,8 @@ void loop() {
   if (timeStatus() != timeNotSet) {
     time_t n = now();
     int o = getOpt();
-    if (n != t or o != opt) { //update the display only if time has changed
+    //update the display if time or display choice has changed
+    if (n != t or o != opt) {
       t = n;
       opt = o;
       Serial.println(opt);
@@ -84,9 +84,19 @@ void loop() {
           break;
         case 4:
           show_date(t);
+          break;
+        case 5:
+          show_wifi();
       }
     }
   }
+}
+
+void show_wifi() {
+  lcd.setCursor(0, 0);
+  lcd.print(centre(ssid));
+  lcd.setCursor(0, 1);
+  lcd.print(centre(WiFi.localIP().toString()));
 }
 
 void show_time(time_t t) {
@@ -252,6 +262,9 @@ byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
 time_t getNtpTime() {
   while (Udp.parsePacket() > 0) ; // discard any previously received packets
   Serial.println("Transmit NTP Request");
+  lcd.setCursor(0, 0);
+  lcd.print("send NTP request");
+
   sendNTPpacket(timeServer);
   uint32_t beginWait = millis();
   while (millis() - beginWait < 1500) {
@@ -268,7 +281,8 @@ time_t getNtpTime() {
       return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
     }
   }
-  Serial.println("No NTP Response :-(");
+  lcd.setCursor(0, 1);
+  lcd.print("no NTP response ");
   return 0; // return 0 if unable to get the time
 }
 
