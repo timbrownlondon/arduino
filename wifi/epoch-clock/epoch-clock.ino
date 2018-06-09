@@ -93,26 +93,15 @@ void loop() {
 }
 
 void show_wifi() {
-  lcd.setCursor(0, 0);
-  lcd.print(centre(ssid));
-  lcd.setCursor(0, 1);
-  lcd.print(centre(WiFi.localIP().toString()));
+  update_lcd(ssid, WiFi.localIP().toString());
 }
 
 void show_time(time_t t) {
-  lcd.setCursor(0, 0);
-  lcd.print(centre(timeStr(t)));
-  lcd.setCursor(0, 1);
-  lcd.print(BLANK);
+  update_lcd(timeStr(t), BLANK);
 }
 
 void show_epoch(time_t t) {
-  lcd.setCursor(0, 0);
-  lcd.print("   unix epoch   ");
-
-  lcd.setCursor(0, 1);
-  // t is adjusted for timeZone - we have to undo that to show the real epoch value
-  lcd.print(epoch(t - timeZone * SECS_PER_HOUR));
+  update_lcd("unix epoch", epoch(t - timeZone * SECS_PER_HOUR));
 }
 
 String ordinal_suffix(byte n) {
@@ -129,10 +118,10 @@ String ordinal_suffix(byte n) {
 }
 
 void show_date(time_t t) {
-  lcd.setCursor(0, 0);
-  lcd.print(centre(String(dayStr(weekday(t))) + " " + String(day(t)) + ordinal_suffix(day(t))));
-  lcd.setCursor(0, 1);
-  lcd.print(centre(String(monthStr(month(t))) + " " + String(year(t))));
+  update_lcd(
+    String(dayStr(weekday(t))) + " " + String(day(t)) + ordinal_suffix(day(t)),
+    String(monthStr(month(t))) + " " + String(year(t))
+  );
 }
 
 const String hours[] = {
@@ -140,6 +129,12 @@ const String hours[] = {
   "seven", "eight", "nine", "ten", "eleven", "twelve"
 };
 
+void update_lcd(String lineOne, String lineTwo) {
+  lcd.setCursor(0, 0);
+  lcd.print(centre(lineOne));
+  lcd.setCursor(0, 1);
+  lcd.print(centre(lineTwo));
+}
 
 void show_approx_time(time_t t) {
   String hr =  hours[hourFormat12(t) - 1];
@@ -147,42 +142,24 @@ void show_approx_time(time_t t) {
   byte m = minute(t);
 
   if (m < 8) {
-    lcd.setCursor(0, 0);
-    lcd.print(centre(String("about") + " " + hr));
-    lcd.setCursor(0, 1);
-    lcd.print(centre("o'clock"));
+    update_lcd("about " + hr, "o'clock");
   }
   else if (m < 22) {
-    lcd.setCursor(0, 0);
-    lcd.print(" about a quarter");
-    lcd.setCursor(0, 1);
-    lcd.print(centre(String("past ") + hr));
+    update_lcd("about a quarter", "past " + hr);
   }
   else if (m < 38) {
-    lcd.setCursor(0, 0);
-    lcd.print(centre("about half"));
-    lcd.setCursor(0, 1);
-    lcd.print(centre(String("past ") + hr));
+    update_lcd("about half", "past " + hr);
   }
   else if (m < 54 ) {
-    lcd.setCursor(0, 0);
-    lcd.print(" about a quarter");
-    lcd.setCursor(0, 1);
-    lcd.print(centre(String("to ") + next_hr));
+    update_lcd("about a quarter", "to " + next_hr);
   }
   else {
-    lcd.setCursor(0, 0);
-    lcd.print(centre(String("about") + " " + next_hr));
-    lcd.setCursor(0, 1);
-    lcd.print(centre("o'clock"));
+    update_lcd("about " + next_hr, "o'clock");
   }
 }
 
 void show_day_part(time_t t) {
-  lcd.setCursor(0, 0);
-  lcd.print(centre(day_part(t)));
-  lcd.setCursor(0, 1);
-  lcd.print(BLANK);
+  update_lcd(day_part(t), BLANK);
 }
 
 
