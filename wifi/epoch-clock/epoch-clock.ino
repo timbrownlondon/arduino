@@ -27,15 +27,15 @@ IPAddress timeServer(5, 189, 146, 13); // from 0.pool.ntp.org
 
 const int timeZone = 1; // 1 hour = BST
 time_t t = 0;
-int opt = 0; // set by potentiometer - display epoch or date etc.
 #define BLANK "                "
 
 WiFiUDP Udp;
-unsigned int localPort = 8888;  // local port to listen for UDP packets
+unsigned int localPort = 8888;  // listen for UDP packets
 
 void setup() {
   Serial.begin(9600);
   pinMode(A0, INPUT);
+  pinMode(D2, INPUT);
 
   lcd.init();
   lcd.display();
@@ -54,22 +54,30 @@ void setup() {
   delay(2000);
 }
 
-int getOpt() {
-  int val = analogRead(A0);
-  return (val * 5) / 1024;
+byte option = 0;    // /option: display epoch or date etc.
+unsigned long last_button_press_millis = 0;
+#define DEBOUNCE_MILLIS 800
+#define NUMBER_OF_OPTIONS 6
+
+boolean updateOptions() {
+  // pin 13 is labelled D11/MOSI/D7
+  if (digitalRead(13) and millis() - last_button_press_millis > DEBOUNCE_MILLIS) {
+    option = (option + 1) % NUMBER_OF_OPTIONS;
+    Serial.println(option);
+    last_button_press_millis = millis();
+    return true;
+  }
+  return false;
 }
 
 void loop() {
   if (timeStatus() != timeNotSet) {
     time_t n = now();
-    int o = getOpt();
-    //update the display if time or display choice has changed
-    if (n != t or o != opt) {
-      t = n;
-      opt = o;
-      Serial.println(opt);
 
-      switch (opt) {
+    if (n != t or updateOptions()) {
+      t = n;
+
+      switch (option) {
         case 0:
           show_epoch(t);
           break;
