@@ -57,9 +57,9 @@ void setup() {
 byte option = 0;    // /option: display epoch or date etc.
 unsigned long last_button_press_millis = 0;
 #define DEBOUNCE_MILLIS 800
-#define NUMBER_OF_OPTIONS 6
+#define NUMBER_OF_OPTIONS 7
 
-boolean updateOptions() {
+boolean optionChanged() {
   // pin 13 is labelled D11/MOSI/D7
   if (digitalRead(13) and millis() - last_button_press_millis > DEBOUNCE_MILLIS) {
     option = (option + 1) % NUMBER_OF_OPTIONS;
@@ -74,26 +74,29 @@ void loop() {
   if (timeStatus() != timeNotSet) {
     time_t n = now();
 
-    if (n != t or updateOptions()) {
+    if (n != t or optionChanged()) {
       t = n;
 
       switch (option) {
         case 0:
-          show_epoch(t);
+          show_approx_time(t);
           break;
         case 1:
           show_time(t);
           break;
         case 2:
-          show_approx_time(t);
+          show_about_time(t);
           break;
         case 3:
-          show_day_part(t);
-          break;
-        case 4:
           show_date(t);
           break;
+        case 4:
+          show_year(t);
+          break;
         case 5:
+          show_epoch(t);
+          break;
+        case 6:
           show_wifi();
       }
     }
@@ -105,7 +108,32 @@ void show_wifi() {
 }
 
 void show_time(time_t t) {
-  update_lcd(timeStr(t), BLANK);
+  update_lcd(timeStr(t), day_part(t));
+}
+
+boolean isLeapYear(int y) {
+  if (y % 400  == 0) {
+    return true;
+  }
+  if (y % 100 == 0) {
+    return false;
+  }
+  if (y % 4 == 0) {
+    return true;
+  }
+  return false;
+}
+
+void show_year(time_t t) {
+  // seconds at the begining of this year
+  time_t seconds = (year(t) - 1970) * (SECS_PER_DAY * 365);
+  for (int y = 1970; y < year(t); y++) {
+    if (isLeapYear(y)) {
+      seconds +=  SECS_PER_DAY;   // add extra days for leap years
+    }
+  }
+  int dayOfYear = ((t - seconds) / SECS_PER_DAY) + 1;
+  update_lcd((String)year(t) + " day " + dayOfYear, "Summer");
 }
 
 void show_epoch(time_t t) {
@@ -113,14 +141,17 @@ void show_epoch(time_t t) {
 }
 
 String ordinal_suffix(byte n) {
-  if (n == 1 or n == 21 or n == 31) {
-    return "st";
-  }
-  if (n == 2 or n == 22 ) {
-    return "nd";
-  }
-  if (n == 3 or n == 23) {
-    return "rd";
+  switch (n) {
+    case 1:
+    case 21:
+    case 31:
+      return "st";
+    case 2:
+    case 22:
+      return "nd";
+    case 3:
+    case 23:
+      return "rd";
   }
   return "th";
 }
@@ -145,6 +176,100 @@ void update_lcd(String lineOne, String lineTwo) {
 }
 
 void show_approx_time(time_t t) {
+  String hr =  hours[hourFormat12(t) - 1];
+  String next_hr =  hours[hourFormat12(t) % 12];
+
+  switch (minute(t)) {
+    case 0:
+    case 1:
+    case 2:
+      update_lcd(hr, "o'clock");
+      break;
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+      update_lcd("just gone", hr + " o'clock");
+      break;
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+      update_lcd("almost a quarter", "past " + hr);
+      break;
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+      update_lcd("a quarter", "past " + hr);
+      break;
+    case 18:
+    case 19:
+    case 20:
+    case 21:
+    case 22:
+      update_lcd("after quarter", "past " + hr);
+      break;
+    case 23:
+    case 24:
+    case 25:
+    case 26:
+    case 27:
+      update_lcd("almost half", "past " + hr);
+      break;
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 32:
+      update_lcd("half past", hr);
+      break;
+    case 33:
+    case 34:
+    case 35:
+    case 36:
+    case 37:
+      update_lcd("just gone half", "past " + hr);
+      break;
+    case 38:
+    case 39:
+    case 40:
+    case 41:
+    case 42:
+      update_lcd("almost a quarter", "to " + next_hr);
+      break;
+    case 43:
+    case 44:
+    case 45:
+    case 46:
+    case 47:
+      update_lcd("a quarter", "to " + next_hr);
+      break;
+    case 48:
+    case 49:
+    case 50:
+    case 51:
+    case 52:
+      update_lcd("after a quarter", "to " + next_hr);
+      break;
+    case 53:
+    case 54:
+    case 55:
+    case 56:
+    case 57:
+      update_lcd("almost "  + next_hr, "o'clock");
+      break;
+    case 58:
+    case 59:
+      update_lcd(next_hr, "o'clock");
+      break;
+  }
+}
+
+void show_about_time(time_t t) {
   String hr =  hours[hourFormat12(t) - 1];
   String next_hr =  hours[hourFormat12(t) % 12];
   byte m = minute(t);
@@ -179,7 +304,7 @@ String day_part(time_t t) {
   if (h < 12) {
     return "morning";
   }
-  if (h < 17) {
+  if (h < 18) {
     return "afternoon";
   }
   if (h < 23) {
