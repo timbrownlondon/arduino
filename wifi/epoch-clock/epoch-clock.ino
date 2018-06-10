@@ -57,7 +57,7 @@ void setup() {
 byte option = 0;    // /option: display epoch or date etc.
 unsigned long last_button_press_millis = 0;
 #define DEBOUNCE_MILLIS 800
-#define NUMBER_OF_OPTIONS 7
+#define NUMBER_OF_OPTIONS 8
 
 boolean optionChanged() {
   // pin 13 is labelled D11/MOSI/D7
@@ -79,24 +79,27 @@ void loop() {
 
       switch (option) {
         case 0:
-          show_approx_time(t);
+          show_five_mins(t);
           break;
         case 1:
-          show_time(t);
+          show_approx_time(t);
           break;
         case 2:
           show_about_time(t);
           break;
         case 3:
-          show_date(t);
+          show_time(t);
           break;
         case 4:
-          show_year(t);
+          show_date(t);
           break;
         case 5:
-          show_epoch(t);
+          show_year(t);
           break;
         case 6:
+          show_epoch(t);
+          break;
+        case 7:
           show_wifi();
       }
     }
@@ -268,6 +271,102 @@ void show_approx_time(time_t t) {
       break;
   }
 }
+
+
+void show_five_mins(time_t t) {
+  String hr =  hours[hourFormat12(t) - 1];
+  String next_hr =  hours[hourFormat12(t) % 12];
+
+  switch (minute(t)) {
+    case 0:
+    case 1:
+    case 2:
+      update_lcd(hr, "o'clock");
+      break;
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+      update_lcd("five past", hr);
+      break;
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+      update_lcd("ten past ", hr);
+      break;
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+      update_lcd("a quarter", "past " + hr);
+      break;
+    case 18:
+    case 19:
+    case 20:
+    case 21:
+    case 22:
+      update_lcd("twenty", "past " + hr);
+      break;
+    case 23:
+    case 24:
+    case 25:
+    case 26:
+    case 27:
+      update_lcd("twenty-five", "past " + hr);
+      break;
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 32:
+      update_lcd("half past", hr);
+      break;
+    case 33:
+    case 34:
+    case 35:
+    case 36:
+    case 37:
+      update_lcd("twenty-five", "to " + next_hr);
+      break;
+    case 38:
+    case 39:
+    case 40:
+    case 41:
+    case 42:
+      update_lcd("twenty", "to " + next_hr);
+      break;
+    case 43:
+    case 44:
+    case 45:
+    case 46:
+    case 47:
+      update_lcd("a quarter", "to " + next_hr);
+      break;
+    case 48:
+    case 49:
+    case 50:
+    case 51:
+    case 52:
+      update_lcd("ten to", next_hr);
+      break;
+    case 53:
+    case 54:
+    case 55:
+    case 56:
+    case 57:
+      update_lcd("five to", next_hr);
+      break;
+    case 58:
+    case 59:
+      update_lcd(next_hr, "o'clock");
+      break;
+  }
+}
+
 
 void show_about_time(time_t t) {
   String hr =  hours[hourFormat12(t) - 1];
