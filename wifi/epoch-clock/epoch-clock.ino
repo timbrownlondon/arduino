@@ -9,14 +9,10 @@
 #include <TimeLib.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
-
-#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-// The standard pins for Uno (according to Wire.h, I guess)
-// SDA = Analog 4 (serial data)
-// SCL = Analog 5 (serial clock)
-// For wemos D1 use D4, D3 (marked on board as SDA and SDL)
+// I2C setup:
+// For Wemos D1 use D4, D3 (marked on board as SDA and SDL)
 // contructor(I2C address, columns, rows)
 // the displays I have use I2C address 0x3F
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
@@ -136,7 +132,7 @@ void show_year(time_t t) {
     }
   }
   int dayOfYear = ((t - seconds) / SECS_PER_DAY) + 1;
-  update_lcd((String)year(t) + " day " + dayOfYear, "Summer");
+  update_lcd((String)"day " + dayOfYear, (String)"of " + year(t));
 }
 
 void show_epoch(time_t t) {
