@@ -53,7 +53,7 @@ void setup() {
 byte option = 0;    // /option: display epoch or date etc.
 unsigned long last_button_press_millis = 0;
 #define DEBOUNCE_MILLIS 800
-#define NUMBER_OF_OPTIONS 8
+#define NUMBER_OF_OPTIONS 9
 
 boolean optionChanged() {
   // pin 13 is labelled D11/MOSI/D7
@@ -70,34 +70,50 @@ void loop() {
   if (timeStatus() != timeNotSet) {
     time_t n = now();
 
-    if (n != t or optionChanged()) {
+    // option zero means cycle through display options
+
+    if ((n != t and option == 0) or optionChanged()) {
       t = n;
 
-      switch (option) {
+      byte display_this = option;
+      if ( option == 0) {
+        display_this = (t / 10 ) % NUMBER_OF_OPTIONS;
+      }
+
+      switch (display_this) {
         case 0:
           show_five_mins(t);
           break;
         case 1:
-          show_approx_time(t);
+          show_time(t);
           break;
         case 2:
           show_about_time(t);
           break;
         case 3:
-          show_time(t);
+          showDayOfYear(t);
           break;
         case 4:
           show_date(t);
           break;
         case 5:
-          show_year(t);
+          show_approx_time(t);
           break;
         case 6:
           show_epoch(t);
           break;
         case 7:
+          showTimsAge(t);
+          break;
+        case 8:
           show_wifi();
       }
+      /*
+        if ( option == 0 ) {
+        lcd.setCursor(0, 0);
+        lcd.print("*");
+        }
+      */
     }
   }
 }
@@ -123,7 +139,7 @@ boolean isLeapYear(int y) {
   return false;
 }
 
-void show_year(time_t t) {
+int dayOfYear(time_t t) {
   // seconds at the begining of this year
   time_t seconds = (year(t) - 1970) * (SECS_PER_DAY * 365);
   for (int y = 1970; y < year(t); y++) {
@@ -131,8 +147,18 @@ void show_year(time_t t) {
       seconds +=  SECS_PER_DAY;   // add extra days for leap years
     }
   }
-  int dayOfYear = ((t - seconds) / SECS_PER_DAY) + 1;
-  update_lcd((String)"day " + dayOfYear, (String)"of " + year(t));
+  return ((t - seconds) / SECS_PER_DAY) + 1;
+}
+
+void showDayOfYear(time_t t) {
+  update_lcd((String)"day " + dayOfYear(t), (String)"of " + year(t));
+}
+
+
+void showTimsAge(time_t t) {
+  // To-do: fix before end of 2018
+  int ageInDays = dayOfYear(t) + 360;
+  update_lcd(String("20,") + ageInDays + " days", "since 4 April 62");
 }
 
 void show_epoch(time_t t) {
@@ -170,8 +196,17 @@ const String hours[] = {
 void update_lcd(String lineOne, String lineTwo) {
   lcd.setCursor(0, 0);
   lcd.print(centre(lineOne));
+
   lcd.setCursor(0, 1);
   lcd.print(centre(lineTwo));
+
+  /*
+     show star if mode is rotating
+    if (option == 0) {
+    lcd.setCursor(0, 1);
+    lcd.print("*");
+    }
+  */
 }
 
 void show_approx_time(time_t t) {
@@ -393,19 +428,19 @@ void show_day_part(time_t t) {
 
 String day_part(time_t t) {
   int h = hour(t);
-  if (h < 6) {
-    return "night";
+  if (h < 5) {
+    return "good night!";
   }
   if (h < 12) {
-    return "morning";
+    return "good morning!";
   }
   if (h < 18) {
-    return "afternoon";
+    return "good afternoon!";
   }
-  if (h < 23) {
-    return "evening";
+  if (h < 22) {
+    return "good evening!";
   }
-  return "night";
+  return "good night!";
 }
 
 String leftPad(String str) {
