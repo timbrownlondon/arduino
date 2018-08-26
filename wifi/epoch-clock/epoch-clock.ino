@@ -6,10 +6,21 @@
     - https://gist.github.com/bembu/04d324cda49f3b279c4eb901ea2e2ce7
 */
 
-#include <TimeLib.h>
+/*
+
+  TO-DO
+  note that using ESP8266WiFi.h appears to cause an Access Point (Wemos D1) to auto start
+  that's not desirable so
+  try including more specific dependencies
+  like WiFiClient.h
+
+*/
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
+
 #include <LiquidCrystal_I2C.h>
+#include <TimeLib.h>
+
 
 // I2C setup:
 // For Wemos D1 use D4, D3 (marked on board as SDA and SDL)
@@ -37,6 +48,7 @@ void setup() {
   lcd.display();
   lcd.backlight();
 
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -50,10 +62,10 @@ void setup() {
   delay(2000);
 }
 
-byte option = 0;    // /option: display epoch or date etc.
+byte option = 2;    // display mode: epoch or date etc.
 unsigned long last_button_press_millis = 0;
 #define DEBOUNCE_MILLIS 800
-#define NUMBER_OF_OPTIONS 9
+#define NUMBER_OF_OPTIONS 8
 
 boolean optionChanged() {
   // pin 13 is labelled D11/MOSI/D7
@@ -70,50 +82,21 @@ void loop() {
   if (timeStatus() != timeNotSet) {
     time_t n = now();
 
-    // option zero means cycle through display options
-
-    if ((n != t and option == 0) or optionChanged()) {
+    if (n != t or optionChanged()) {
       t = n;
 
-      byte display_this = option;
-      if ( option == 0) {
-        display_this = (t / 10 ) % NUMBER_OF_OPTIONS;
+      switch (option) {
+        case 0: update_lcd("It's About Time", day_part(t)); break;
+        case 1: show_time(t); break;
+        // case 2: show_about_time(t); break;
+        // case 3: show_approx_time(t); break;
+        case 2: show_five_mins(t); break;
+        case 3: show_date(t); break;
+        case 4: showDayOfYear(t); break;
+        case 5: show_epoch(t); break;
+        case 6: showTimsAge(t); break;
+        case 7: show_wifi();
       }
-
-      switch (display_this) {
-        case 0:
-          show_five_mins(t);
-          break;
-        case 1:
-          show_time(t);
-          break;
-        case 2:
-          show_about_time(t);
-          break;
-        case 3:
-          showDayOfYear(t);
-          break;
-        case 4:
-          show_date(t);
-          break;
-        case 5:
-          show_approx_time(t);
-          break;
-        case 6:
-          show_epoch(t);
-          break;
-        case 7:
-          showTimsAge(t);
-          break;
-        case 8:
-          show_wifi();
-      }
-      /*
-        if ( option == 0 ) {
-        lcd.setCursor(0, 0);
-        lcd.print("*");
-        }
-      */
     }
   }
 }
@@ -123,7 +106,7 @@ void show_wifi() {
 }
 
 void show_time(time_t t) {
-  update_lcd(timeStr(t), day_part(t));
+  update_lcd(timeStr(t), String(day(t)) + " " + monthShortStr(month(t)) + " " + String(year(t)));
 }
 
 boolean isLeapYear(int y) {
@@ -151,7 +134,7 @@ int dayOfYear(time_t t) {
 }
 
 void showDayOfYear(time_t t) {
-  update_lcd((String)"day " + dayOfYear(t), (String)"of " + year(t));
+  update_lcd((String)"Day " + dayOfYear(t), (String)"of " + year(t));
 }
 
 
@@ -162,7 +145,7 @@ void showTimsAge(time_t t) {
 }
 
 void show_epoch(time_t t) {
-  update_lcd("unix epoch", epoch(t - timeZone * SECS_PER_HOUR));
+  update_lcd("Unix Epoch", epoch(t - timeZone * SECS_PER_HOUR));
 }
 
 String ordinal_suffix(byte n) {
@@ -189,8 +172,8 @@ void show_date(time_t t) {
 }
 
 const String hours[] = {
-  "one", "two", "three", "four", "five", "six",
-  "seven", "eight", "nine", "ten", "eleven", "twelve"
+  "One", "Two", "Three", "Four", "Five", "Six",
+  "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"
 };
 
 void update_lcd(String lineOne, String lineTwo) {
@@ -199,14 +182,6 @@ void update_lcd(String lineOne, String lineTwo) {
 
   lcd.setCursor(0, 1);
   lcd.print(centre(lineTwo));
-
-  /*
-     show star if mode is rotating
-    if (option == 0) {
-    lcd.setCursor(0, 1);
-    lcd.print("*");
-    }
-  */
 }
 
 void show_approx_time(time_t t) {
@@ -312,88 +287,88 @@ void show_five_mins(time_t t) {
     case 0:
     case 1:
     case 2:
-      update_lcd(hr, "o'clock");
+      update_lcd(hr, "O'clock");
       break;
     case 3:
     case 4:
     case 5:
     case 6:
     case 7:
-      update_lcd("five past", hr);
+      update_lcd("Five past", hr);
       break;
     case 8:
     case 9:
     case 10:
     case 11:
     case 12:
-      update_lcd("ten past ", hr);
+      update_lcd("Ten past ", hr);
       break;
     case 13:
     case 14:
     case 15:
     case 16:
     case 17:
-      update_lcd("a quarter", "past " + hr);
+      update_lcd("Quarter", "past " + hr);
       break;
     case 18:
     case 19:
     case 20:
     case 21:
     case 22:
-      update_lcd("twenty", "past " + hr);
+      update_lcd("Twenty", "past " + hr);
       break;
     case 23:
     case 24:
     case 25:
     case 26:
     case 27:
-      update_lcd("twenty-five", "past " + hr);
+      update_lcd("Twenty-five", "past " + hr);
       break;
     case 28:
     case 29:
     case 30:
     case 31:
     case 32:
-      update_lcd("half past", hr);
+      update_lcd("Half past", hr);
       break;
     case 33:
     case 34:
     case 35:
     case 36:
     case 37:
-      update_lcd("twenty-five", "to " + next_hr);
+      update_lcd("Twenty-five", "to " + next_hr);
       break;
     case 38:
     case 39:
     case 40:
     case 41:
     case 42:
-      update_lcd("twenty", "to " + next_hr);
+      update_lcd("Twenty", "to " + next_hr);
       break;
     case 43:
     case 44:
     case 45:
     case 46:
     case 47:
-      update_lcd("a quarter", "to " + next_hr);
+      update_lcd("Quarter", "to " + next_hr);
       break;
     case 48:
     case 49:
     case 50:
     case 51:
     case 52:
-      update_lcd("ten to", next_hr);
+      update_lcd("Ten to", next_hr);
       break;
     case 53:
     case 54:
     case 55:
     case 56:
     case 57:
-      update_lcd("five to", next_hr);
+      update_lcd("Five to", next_hr);
       break;
     case 58:
     case 59:
-      update_lcd(next_hr, "o'clock");
+      update_lcd(next_hr, "O'clock");
       break;
   }
 }
@@ -421,26 +396,23 @@ void show_about_time(time_t t) {
   }
 }
 
-void show_day_part(time_t t) {
-  update_lcd(day_part(t), BLANK);
-}
-
 
 String day_part(time_t t) {
   int h = hour(t);
+  String g = "Good ";
   if (h < 5) {
-    return "good night!";
+    return g + "Night";
   }
   if (h < 12) {
-    return "good morning!";
+    return g + "Morning";
   }
   if (h < 18) {
-    return "good afternoon!";
+    return g + "Afternoon";
   }
   if (h < 22) {
-    return "good evening!";
+    return g + "Evening";
   }
-  return "good night!";
+  return g + "Night";
 }
 
 String leftPad(String str) {
