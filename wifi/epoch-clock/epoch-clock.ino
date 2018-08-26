@@ -62,10 +62,10 @@ void setup() {
   delay(2000);
 }
 
-byte option = 2;    // display mode: epoch or date etc.
+byte option = 1;    // display mode: epoch or date etc.
 unsigned long last_button_press_millis = 0;
 #define DEBOUNCE_MILLIS 800
-#define NUMBER_OF_OPTIONS 8
+#define NUMBER_OF_OPTIONS 10
 
 boolean optionChanged() {
   // pin 13 is labelled D11/MOSI/D7
@@ -87,15 +87,15 @@ void loop() {
 
       switch (option) {
         case 0: update_lcd("It's About Time", day_part(t)); break;
-        case 1: show_time(t); break;
-        // case 2: show_about_time(t); break;
-        // case 3: show_approx_time(t); break;
-        case 2: show_five_mins(t); break;
-        case 3: show_date(t); break;
-        case 4: showDayOfYear(t); break;
-        case 5: show_epoch(t); break;
-        case 6: showTimsAge(t); break;
-        case 7: show_wifi();
+        case 1: show_five_mins(t); break;
+        case 2: show_about_time(t); break;
+        case 3: show_approx_time(t); break;
+        case 4: show_time(t); break;
+        case 5: show_date(t); break;
+        case 6: showDayOfYear(t); break;
+        case 7: show_epoch(t); break;
+        case 8: showTimsAge(t); break;
+        case 9: show_wifi();
       }
     }
   }
@@ -192,84 +192,84 @@ void show_approx_time(time_t t) {
     case 0:
     case 1:
     case 2:
-      update_lcd(hr, "o'clock");
+      update_lcd(hr, "O'clock");
       break;
     case 3:
     case 4:
     case 5:
     case 6:
     case 7:
-      update_lcd("just gone", hr + " o'clock");
+      update_lcd("Just gone", hr + " O'clock");
       break;
     case 8:
     case 9:
     case 10:
     case 11:
     case 12:
-      update_lcd("almost a quarter", "past " + hr);
+      update_lcd("Almost Quarter", "past " + hr);
       break;
     case 13:
     case 14:
     case 15:
     case 16:
     case 17:
-      update_lcd("a quarter", "past " + hr);
+      update_lcd("Quarter", "past " + hr);
       break;
     case 18:
     case 19:
     case 20:
     case 21:
     case 22:
-      update_lcd("after quarter", "past " + hr);
+      update_lcd("Gone Quarter", "past " + hr);
       break;
     case 23:
     case 24:
     case 25:
     case 26:
     case 27:
-      update_lcd("almost half", "past " + hr);
+      update_lcd("Almost Half", "past " + hr);
       break;
     case 28:
     case 29:
     case 30:
     case 31:
     case 32:
-      update_lcd("half past", hr);
+      update_lcd("Half past", hr);
       break;
     case 33:
     case 34:
     case 35:
     case 36:
     case 37:
-      update_lcd("just gone half", "past " + hr);
+      update_lcd("Just gone Half", "past " + hr);
       break;
     case 38:
     case 39:
     case 40:
     case 41:
     case 42:
-      update_lcd("almost a quarter", "to " + next_hr);
+      update_lcd("Almost Quarter", "to " + next_hr);
       break;
     case 43:
     case 44:
     case 45:
     case 46:
     case 47:
-      update_lcd("a quarter", "to " + next_hr);
+      update_lcd("Quarter", "to " + next_hr);
       break;
     case 48:
     case 49:
     case 50:
     case 51:
     case 52:
-      update_lcd("after a quarter", "to " + next_hr);
+      update_lcd("Gone Quarter", "to " + next_hr);
       break;
     case 53:
     case 54:
     case 55:
     case 56:
     case 57:
-      update_lcd("almost "  + next_hr, "o'clock");
+      update_lcd("Almost "  + next_hr, "o'clock");
       break;
     case 58:
     case 59:
@@ -380,19 +380,19 @@ void show_about_time(time_t t) {
   byte m = minute(t);
 
   if (m < 8) {
-    update_lcd("about " + hr, "o'clock");
+    update_lcd("About " + hr, "O'clock");
   }
   else if (m < 22) {
-    update_lcd("about a quarter", "past " + hr);
+    update_lcd("About Quarter", "past " + hr);
   }
   else if (m < 38) {
-    update_lcd("about half", "past " + hr);
+    update_lcd("About Half", "past " + hr);
   }
   else if (m < 54 ) {
-    update_lcd("about a quarter", "to " + next_hr);
+    update_lcd("About Quarter", "to " + next_hr);
   }
   else {
-    update_lcd("about " + next_hr, "o'clock");
+    update_lcd("About " + next_hr, "O'clock");
   }
 }
 
