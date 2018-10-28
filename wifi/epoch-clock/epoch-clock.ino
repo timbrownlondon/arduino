@@ -4,9 +4,8 @@
 
     also see bembu/wemos_oled_clock_ntp_synced.ino
     - https://gist.github.com/bembu/04d324cda49f3b279c4eb901ea2e2ce7
-*/
 
-/*
+    In Arduino IDE I am setting board to WEMOS D1 mini Lite 
 
   TO-DO
   note that using ESP8266WiFi.h appears to cause an Access Point (Wemos D1) to auto start
@@ -32,7 +31,8 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
 IPAddress timeServer(5, 189, 146, 13); // from 0.pool.ntp.org
 
-const int timeZone = 1; // 1 hour = BST
+// we could toggle timezone by setting a pin hi/lo
+const int timeZone = 0; // 0 for GMT, 1 for BST
 time_t t = 0;
 #define BLANK "                "
 
