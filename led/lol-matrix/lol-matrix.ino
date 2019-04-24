@@ -5,33 +5,46 @@
 
 #include <Charliplexing.h>
 
+#define MAX_SPEED 16
+#define MIN_SPEED 1
+
+
 struct point {
-  uint8_t position; // current position in x axis (multplied by 16)
-  uint8_t speed;    // how fast point moves in x axis
-  boolean is_on;    // switch between off (blank) line and an on line)
+  uint8_t position;    // current position in x axis (multplied by 16)
+  uint8_t speed;       // how fast point moves in x axis
+  uint8_t brightness;  // 0-7 how bright are the leds for this column
+  boolean is_on;       // switch between off (blank) line and an on line)
 } points[9];
 
 void setup() {
+  Serial.begin(115200);
   LedSign::Init(GRAYSCALE);
 
   for (uint8_t i = 0; i < 9; i++) {
-    points[i].position = random(14);
-    points[i].speed = random(3, 16);
-    points[i].is_on = true;
+    uint8_t brightness = random(2) * random(SHADES);
+    init_point(&points[i], brightness);
   }
 }
 
+void init_point(point *p, uint8_t brightness) {
+  p->position = 0;
+  p->speed = random(MIN_SPEED, MAX_SPEED);
+  p->is_on = true;
+  p->brightness = random(2) * random(2, SHADES);;
+}
 
 void loop() {
   for (uint8_t i = 0; i < 9; i++) {
-    points[i].position += points[i].speed;
-    if (points[i].position >= 14 * 16) {
-      points[i].position = 0;
-      points[i].speed = random(1, 10);
-      points[i].is_on = not points[i].is_on;
+    point *p = &points[i];
+    p->position += p->speed;
+    Serial.println(p->position);
+
+    // reached the bottom of the screen
+    if (p->position >= 14 * 16) {
+      init_point(p, 0);
     }
-    uint8_t brightness = (points[i].is_on ? random(1, SHADES) : 0);
-    LedSign::Set(points[i].position / 16, i, brightness);
+
+    LedSign::Set(p->position / 16, i, p->brightness);
   }
 
   delay(200);
