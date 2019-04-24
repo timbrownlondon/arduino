@@ -34,5 +34,5 @@ void loop() {
     LedSign::Set(points[i].position / 16, i, brightness);
   }
 
-  delay(50);
+  delay(200);
 }
