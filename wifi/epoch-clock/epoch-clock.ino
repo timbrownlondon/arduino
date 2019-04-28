@@ -68,8 +68,12 @@ void setup() {
   }
 }
 
+// a crude function for daylight saving
 boolean is_BST(time_t t) {
-  return true;
+  if (month(t) > 3 and month(t) < 11) {
+    return true;
+  }
+  return false;
 }
 
 byte option = 1;    // display mode: epoch or date etc.
