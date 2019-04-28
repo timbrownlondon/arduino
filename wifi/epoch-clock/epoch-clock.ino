@@ -5,7 +5,7 @@
     also see bembu/wemos_oled_clock_ntp_synced.ino
     - https://gist.github.com/bembu/04d324cda49f3b279c4eb901ea2e2ce7
 
-    In Arduino IDE I am setting board to WEMOS D1 mini Lite 
+    In Arduino IDE I am setting board to WEMOS D1 mini Lite
 
   TO-DO
   note that using ESP8266WiFi.h appears to cause an Access Point (Wemos D1) to auto start
@@ -31,8 +31,8 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
 IPAddress timeServer(5, 189, 146, 13); // from 0.pool.ntp.org
 
-// we could toggle timezone by setting a pin hi/lo
-const int timeZone = 0; // 0 for GMT, 1 for BST
+// initially set to GMT (0 for GMT, 1 for BST)
+int timeZone = 0;
 time_t t = 0;
 #define BLANK "                "
 
@@ -59,7 +59,17 @@ void setup() {
 
   Udp.begin(localPort);
   setSyncProvider(getNtpTime);
-  delay(2000);
+  while (timeStatus() == timeNotSet) {
+    delay(100);
+    lcd.print("-");
+  }
+  if (is_BST(now())) {
+    timeZone = 1;
+  }
+}
+
+boolean is_BST(time_t t) {
+  return true;
 }
 
 byte option = 1;    // display mode: epoch or date etc.
@@ -78,25 +88,26 @@ boolean optionChanged() {
   return false;
 }
 
+// main loop updates display
+// if time has changed (to nearest second)
+// or the option switch has been pressed
 void loop() {
-  if (timeStatus() != timeNotSet) {
-    time_t n = now();
+  time_t n = now() + timeZone * SECS_PER_HOUR;
 
-    if (n != t or optionChanged()) {
-      t = n;
+  if (n != t or optionChanged()) {
+    t = n;
 
-      switch (option) {
-        case 0: update_lcd("It's About Time", day_part(t)); break;
-        case 1: show_five_mins(t); break;
-        case 2: show_about_time(t); break;
-        case 3: show_approx_time(t); break;
-        case 4: show_time(t); break;
-        case 5: show_date(t); break;
-        case 6: showDayOfYear(t); break;
-        case 7: show_epoch(t); break;
-        case 8: showTimsAge(t); break;
-        case 9: show_wifi();
-      }
+    switch (option) {
+      case 0: update_lcd("It's About Time", day_part(t)); break;
+      case 1: show_five_mins(t); break;
+      case 2: show_about_time(t); break;
+      case 3: show_approx_time(t); break;
+      case 4: show_time(t); break;
+      case 5: show_date(t); break;
+      case 6: showDayOfYear(t); break;
+      case 7: show_epoch(t); break;
+      case 8: showTimsAge(t); break;
+      case 9: show_wifi();
     }
   }
 }
@@ -206,42 +217,42 @@ void show_approx_time(time_t t) {
     case 10:
     case 11:
     case 12:
-      update_lcd("Almost Quarter", "past " + hr);
+      update_lcd("Almost Quarter", "Past " + hr);
       break;
     case 13:
     case 14:
     case 15:
     case 16:
     case 17:
-      update_lcd("Quarter", "past " + hr);
+      update_lcd("Quarter", "Past " + hr);
       break;
     case 18:
     case 19:
     case 20:
     case 21:
     case 22:
-      update_lcd("Gone Quarter", "past " + hr);
+      update_lcd("Gone Quarter", "Past " + hr);
       break;
     case 23:
     case 24:
     case 25:
     case 26:
     case 27:
-      update_lcd("Almost Half", "past " + hr);
+      update_lcd("Almost Half", "Past " + hr);
       break;
     case 28:
     case 29:
     case 30:
     case 31:
     case 32:
-      update_lcd("Half past", hr);
+      update_lcd("Half Past", hr);
       break;
     case 33:
     case 34:
     case 35:
     case 36:
     case 37:
-      update_lcd("Just gone Half", "past " + hr);
+      update_lcd("Just gone Half", "Past " + hr);
       break;
     case 38:
     case 39:
@@ -294,77 +305,77 @@ void show_five_mins(time_t t) {
     case 5:
     case 6:
     case 7:
-      update_lcd("Five past", hr);
+      update_lcd("Five Past", hr);
       break;
     case 8:
     case 9:
     case 10:
     case 11:
     case 12:
-      update_lcd("Ten past ", hr);
+      update_lcd("Ten Past ", hr);
       break;
     case 13:
     case 14:
     case 15:
     case 16:
     case 17:
-      update_lcd("Quarter", "past " + hr);
+      update_lcd("Quarter", "Past " + hr);
       break;
     case 18:
     case 19:
     case 20:
     case 21:
     case 22:
-      update_lcd("Twenty", "past " + hr);
+      update_lcd("Twenty", "Past " + hr);
       break;
     case 23:
     case 24:
     case 25:
     case 26:
     case 27:
-      update_lcd("Twenty-five", "past " + hr);
+      update_lcd("Twenty-Five", "Past " + hr);
       break;
     case 28:
     case 29:
     case 30:
     case 31:
     case 32:
-      update_lcd("Half past", hr);
+      update_lcd("Half Past", hr);
       break;
     case 33:
     case 34:
     case 35:
     case 36:
     case 37:
-      update_lcd("Twenty-five", "to " + next_hr);
+      update_lcd("Twenty-Five", "To " + next_hr);
       break;
     case 38:
     case 39:
     case 40:
     case 41:
     case 42:
-      update_lcd("Twenty", "to " + next_hr);
+      update_lcd("Twenty", "To " + next_hr);
       break;
     case 43:
     case 44:
     case 45:
     case 46:
     case 47:
-      update_lcd("Quarter", "to " + next_hr);
+      update_lcd("Quarter", "To " + next_hr);
       break;
     case 48:
     case 49:
     case 50:
     case 51:
     case 52:
-      update_lcd("Ten to", next_hr);
+      update_lcd("Ten To", next_hr);
       break;
     case 53:
     case 54:
     case 55:
     case 56:
     case 57:
-      update_lcd("Five to", next_hr);
+      update_lcd("Five To", next_hr);
       break;
     case 58:
     case 59:
@@ -383,13 +394,13 @@ void show_about_time(time_t t) {
     update_lcd("About " + hr, "O'clock");
   }
   else if (m < 22) {
-    update_lcd("About Quarter", "past " + hr);
+    update_lcd("About Quarter", "Past " + hr);
   }
   else if (m < 38) {
-    update_lcd("About Half", "past " + hr);
+    update_lcd("About Half", "Past " + hr);
   }
   else if (m < 54 ) {
-    update_lcd("About Quarter", "to " + next_hr);
+    update_lcd("About Quarter", "To " + next_hr);
   }
   else {
     update_lcd("About " + next_hr, "O'clock");
@@ -490,7 +501,7 @@ time_t getNtpTime() {
       secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
       secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
       secsSince1900 |= (unsigned long)packetBuffer[43];
-      return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
+      return secsSince1900 - 2208988800UL;
     }
   }
   lcd.setCursor(0, 1);
