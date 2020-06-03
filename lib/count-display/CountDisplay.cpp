@@ -29,14 +29,15 @@ byte CountDisplay::getButton() {
 
 void CountDisplay::display_seconds(unsigned long count){
   this->board->setDisplayToDecNumber(count, 0x48, false);
-  this->board->setLEDs(1 << (count - 1) % 8);
+  this->board->setLEDs(1 << (count % 8));
 }
 
 void CountDisplay::display_days_decimal(unsigned long count){
-  unsigned long days = (count * 1000L) / (36 * 24);
-  this->board->setDisplayToDecNumber(days, 32, false);
-  this->board->setLEDs(0);
+  unsigned long days = (count * 1L) / (3.6 * 2.4);
+  this->board->setDisplayToDecNumber(days, 16, false);
+  this->board->setLEDs(1 << (7 - (count % 8)));
 }
+
 
 void CountDisplay::display_days_hours(unsigned long count){
 
