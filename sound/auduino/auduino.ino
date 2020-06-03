@@ -40,43 +40,16 @@ uint8_t grain2Decay;
 #define GRAIN2_FREQ_CONTROL  (3)
 #define GRAIN2_DECAY_CONTROL (1)
 
-
-// Changing these will also requires rewriting audioOn()
-
-#if defined(__AVR_ATmega8__)
-//
-// On old ATmega8 boards.
-//    Output is on pin 11
-//
-#define LED_PIN       13
-#define LED_PORT      PORTB
-#define LED_BIT       5
-#define PWM_PIN       11
-#define PWM_VALUE     OCR2
-#define PWM_INTERRUPT TIMER2_OVF_vect
-#elif defined(__AVR_ATmega1280__)
-//
-// On the Arduino Mega
-//    Output is on pin 3
-//
-#define LED_PIN       13
-#define LED_PORT      PORTB
-#define LED_BIT       7
-#define PWM_PIN       3
-#define PWM_VALUE     OCR3C
-#define PWM_INTERRUPT TIMER3_OVF_vect
-#else
 //
 // For modern ATmega168 and ATmega328 boards
-//    Output is on pin 3
-//
+// try 9 (was 3) Tim May 2018
 #define PWM_PIN       3
 #define PWM_VALUE     OCR2B
 #define LED_PIN       13
 #define LED_PORT      PORTB
 #define LED_BIT       5
 #define PWM_INTERRUPT TIMER2_OVF_vect
-#endif
+
 
 // Smooth logarithmic mapping
 //
@@ -121,20 +94,10 @@ uint16_t mapPentatonic(uint16_t input) {
 
 
 void audioOn() {
-#if defined(__AVR_ATmega8__)
-  // ATmega8 has different registers
-  TCCR2 = _BV(WGM20) | _BV(COM21) | _BV(CS20);
-  TIMSK = _BV(TOIE2);
-#elif defined(__AVR_ATmega1280__)
-  TCCR3A = _BV(COM3C1) | _BV(WGM30);
-  TCCR3B = _BV(CS30);
-  TIMSK3 = _BV(TOIE3);
-#else
   // Set up PWM to 31.25kHz, phase accurate
   TCCR2A = _BV(COM2B1) | _BV(WGM20);
   TCCR2B = _BV(CS20);
   TIMSK2 = _BV(TOIE2);
-#endif
 }
 
 
