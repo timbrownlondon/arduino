@@ -5,7 +5,7 @@
     also see bembu/wemos_oled_clock_ntp_synced.ino
     - https://gist.github.com/bembu/04d324cda49f3b279c4eb901ea2e2ce7
 
-    In Arduino IDE I am setting board to WEMOS D1 mini Lite 
+    In Arduino IDE I am setting board to WEMOS D1 mini Lite
 
   TO-DO
   note that using ESP8266WiFi.h appears to cause an Access Point (Wemos D1) to auto start
@@ -59,7 +59,10 @@ void setup() {
 
   Udp.begin(localPort);
   setSyncProvider(getNtpTime);
-  delay(2000);
+
+  while (timeStatus() != timeNotSet) {
+    delay(2000);
+  }
 }
 
 byte option = 1;    // display mode: epoch or date etc.
@@ -79,24 +82,22 @@ boolean optionChanged() {
 }
 
 void loop() {
-  if (timeStatus() != timeNotSet) {
-    time_t n = now();
+  time_t n = now();
 
-    if (n != t or optionChanged()) {
-      t = n;
+  if (n != t or optionChanged()) {
+    t = n;
 
-      switch (option) {
-        case 0: update_lcd("It's About Time", day_part(t)); break;
-        case 1: show_five_mins(t); break;
-        case 2: show_about_time(t); break;
-        case 3: show_approx_time(t); break;
-        case 4: show_time(t); break;
-        case 5: show_date(t); break;
-        case 6: showDayOfYear(t); break;
-        case 7: show_epoch(t); break;
-        case 8: showTimsAge(t); break;
-        case 9: show_wifi();
-      }
+    switch (option) {
+      case 0: update_lcd("It's About Time", day_part(t)); break;
+      case 1: show_five_mins(t); break;
+      case 2: show_about_time(t); break;
+      case 3: show_approx_time(t); break;
+      case 4: show_time(t); break;
+      case 5: show_date(t); break;
+      case 6: showDayOfYear(t); break;
+      case 7: show_epoch(t); break;
+      case 8: showTimsAge(t); break;
+      case 9: show_wifi();
     }
   }
 }
