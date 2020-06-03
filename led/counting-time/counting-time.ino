@@ -41,7 +41,7 @@ void setup() {
 
 void loop() {
   counter_1.display_seconds(count);
-  counter_2.display_days_hours(count);
+  counter_2.display_days_decimal(count);
 
   byte note = counter_1.getButton();
   if (counter_2.getButton()) {
