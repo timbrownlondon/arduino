@@ -33,9 +33,9 @@ void CountDisplay::display_seconds(unsigned long count){
 }
 
 void CountDisplay::display_days_decimal(unsigned long count){
-  unsigned long days = (count * 1L) / (3.6 * 2.4);
-  this->board->setDisplayToDecNumber(days, 16, false);
-  this->board->setLEDs(1 << (7 - (count % 8)));
+  unsigned long days_times_ten_thousand = (count * 1L) / (3.6 * 2.4);
+  this->board->setDisplayToDecNumber(days_times_ten_thousand, 16, false);
+  this->board->setLEDs(1 << (days_times_ten_thousand % 8));
 }
 
 
