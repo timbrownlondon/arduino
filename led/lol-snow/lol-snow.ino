@@ -2,43 +2,35 @@
 
 byte cell[DISPLAY_COLS][DISPLAY_ROWS];
 
+byte chance = 8; // one in 8 cells are likely to be on
+
+
 void setup() {
   LedSign::Init(GRAYSCALE);  //Initializes the screen
   for (byte x = 0; x < DISPLAY_COLS; x++) {   // 14 columns
-    for (byte y = 0; y <= DISPLAY_ROWS; y++) { // 9 rows
-      cell[x][y] = pix();
+    for (byte y = 0; y < DISPLAY_ROWS; y++) { // 9 rows
+      cell[x][y] = 0;
     }
   }
 }
 
-boolean on = false;
-byte chance = 5;
-byte delta = 1;
-
 void loop() {
-  chance += delta;
-  if(chance > 50){
-    delta = -1;
-  }
-  if(chance < 5){
-    delta = 1;
-  }
   for (byte y = 0; y < DISPLAY_ROWS; y++) { // 9 rows
     for (byte x = 0; x < DISPLAY_COLS; x++) {   // 14 columns
-      LedSign::Set(x, y, cell[x][y]);
-      if (y == DISPLAY_ROWS - 1) {
+      
+      if (x == DISPLAY_COLS - 1) {
         cell[x][y] = pix();
       }
       else {
-        cell[x][y] = cell[x][y + 1];
+        cell[x][y] = cell[x + 1][y];
       }
+      LedSign::Set(x, y, cell[x][y]);
     }
   }
-  delay(300);
+  delay(800);
 }
 
 byte pix() {
   if (random(chance)) return 0;
-  return random(2) + 1;
+  return random(4) + 1;
 }
-
