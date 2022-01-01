@@ -29,7 +29,7 @@ byte CountDisplay::getButton() {
 
 void CountDisplay::display_seconds(unsigned long count){
   // 2022 Jan
-  // ignore most significant 
+  // ignore digits that cannot be displayed
   long n = count % 100000000;
   this->board->setDisplayToDecNumber(n, 0x48, false);
   this->board->setLEDs(1 << (n % 8));
