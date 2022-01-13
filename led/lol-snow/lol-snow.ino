@@ -4,7 +4,6 @@ byte cell[DISPLAY_COLS][DISPLAY_ROWS];
 
 byte chance = 8; // one in 8 cells are likely to be on
 
-
 void setup() {
   LedSign::Init(GRAYSCALE);  //Initializes the screen
   for (byte x = 0; x < DISPLAY_COLS; x++) {   // 14 columns
@@ -24,10 +23,10 @@ void loop() {
       else {
         cell[x][y] = cell[x + 1][y];
       }
-      LedSign::Set(x, y, cell[x][y]);
+      LedSign::Set(x, y, cell[DISPLAY_COLS - x - 1][y]);
     }
   }
-  delay(800);
+  delay(1400);
 }
 
 byte pix() {
