@@ -1,7 +1,13 @@
 #include <Charliplexing.h>
 
+// Life runs in a matrix world
+// we need a matrix for the current state (cell[][])
+// and a matric to record the next generation (next[][])
 int8_t cell[DISPLAY_COLS][DISPLAY_ROWS];
 int8_t next[DISPLAY_COLS][DISPLAY_ROWS];
+
+// counters to decide when to reset the world
+int  generation = 0;
 uint8_t count = 0;
 
 void update_display() {
@@ -11,6 +17,19 @@ void update_display() {
     }
   }
 }
+
+// have all the cells died?
+boolean all_dead() {
+  for (int8_t x = 0; x < DISPLAY_COLS; x++) {   // 14 columns
+    for (int8_t y = 0; y < DISPLAY_ROWS; y++) { // 9 rows
+      if ( cell[x][y] ) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 
 void set_next_generation() {
   for (int8_t x = 0; x < DISPLAY_COLS; x++) {   // 14 columns
@@ -103,9 +122,16 @@ void setup() {
   set_random_world();
 }
 void loop() {
+  generation++;
+  //Serial.println(generation);
+
   // reset the world from time to time
-  if (count++ > 100) {
-    count = 0;
+  if (all_dead()) {
+    count++;
+  }
+
+  if (count > 10 or generation > 500) {
+    count = generation = 0;
     set_random_world();
   }
 
@@ -118,5 +144,5 @@ void loop() {
       cell[x][y] = next[x][y];
     }
   }
-  delay(150);
+  delay(100);
 }
