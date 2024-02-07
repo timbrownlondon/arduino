@@ -59,6 +59,7 @@ void setup() {
 
   Udp.begin(localPort);
   setSyncProvider(getNtpTime);
+
   while (timeStatus() == timeNotSet) {
     delay(100);
     lcd.print("-");

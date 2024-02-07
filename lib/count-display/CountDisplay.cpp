@@ -7,72 +7,107 @@
 
 CountDisplay::CountDisplay(TM1638* board) {
   this->board = board;
-  this->hours = -1;
-  this->days  = -1;
+  this->mode  = 1; // seconds, minutes, hours, days, weeks, months, years
 }
 
+void CountDisplay::update_mode() {
+  long next_mode = this->getButton();
+  if( next_mode ){
+    this->mode = next_mode;
+    Serial.println(this->mode);
+  }
+}
 
-byte CountDisplay::getButton() {
-
+// we map the buttons to the number of seconds in each period
+// 60: minutes
+// 3600: hours
+// 86400: days, etc.
+long CountDisplay::getButton() {
   switch(this->board->getButtons()){
     case 1:   return 1;
-    case 2:   return 2;
-    case 4:   return 3;
-    case 8:   return 4;
-    case 16:  return 5;
-    case 32:  return 6;
-    case 64:  return 7;
-    case 128: return 8;
+    case 2:   return 60;
+    case 4:   return 3600;
+    case 8:   return 86400;
+    case 16:  return 604800;    // week
+    case 32:  return 2629746;   // month
+    case 64:  return 31556952;  // year
+    case 128: return 16;
     default:  return 0;
   }
 }
 
+// provides a bit string to use the 8 led array
+// as a progress bar
+byte progress_bar(long numerator, long denominator){
+  switch (numerator * 9 / denominator) {
+    case 1: return 1;
+    case 2: return 3;
+    case 3: return 7;
+    case 4: return 15;
+    case 5: return 31;
+    case 6: return 63;
+    case 7: return 127;
+    case 8: return 255;
+    default: return 0;
+  }
+}
+
+void CountDisplay::display_by_mode(unsigned long seconds){
+  if ( this->mode == 1 ){
+    // seconds
+    this->board->setDisplayToDecNumber(seconds % 100000000, 0x00, true);
+    this->board->setLEDs(1 << (seconds % 8));
+    return;
+  }
+  if ( this->mode == 16 ){
+    // seconds as hexadecimal
+    this->board->setDisplayToHexNumber(seconds, 0x00, false);
+    this->board->setLEDs(1 << (seconds % 8));
+    return;
+  }
+  // cwfollowing workd for minutes, hours, days etc.
+  long count = seconds / this->mode;
+  long remainder = seconds - (count * this->mode);
+  this->board->setDisplayToDecNumber(count, 0x00, false);
+  this->board->setLEDs(progress_bar(remainder, this->mode));
+  return;
+}
+
 void CountDisplay::display_seconds(unsigned long count){
-  this->board->setDisplayToDecNumber(count, 0x48, false);
-  this->board->setLEDs(1 << (count - 1) % 8);
+  // 2022 Jan
+  // ignore digits that cannot be displayed
+  long n = count % 100000000;
+  this->board->setDisplayToDecNumber(n, 0x48, false);
+  this->board->setLEDs(1 << (n % 8));
+}
+
+void CountDisplay::display_minutes(unsigned long count){
+  long n = count / 60;
+  this->board->setDisplayToDecNumber(n, 0x48, false);
+}
+
+void CountDisplay::display_hours(unsigned long count){
+  long n = count / 3600;
+  this->board->setDisplayToDecNumber(n, 0x48, false);
+}
+
+void CountDisplay::display_days(unsigned long count){
+  long n = count / 86400;
+  this->board->setDisplayToDecNumber(n, 0x48, false);
+}
+
+void CountDisplay::display_months(unsigned long count){
+  long n = count / 2629746;
+  this->board->setDisplayToDecNumber(n, 0x48, false);
+}
+
+void CountDisplay::display_years(unsigned long count){
+  long n = count / 31556952;
+  this->board->setDisplayToDecNumber(n, 0x48, false);
 }
 
 void CountDisplay::display_days_decimal(unsigned long count){
-  unsigned long days = (count * 1000L) / (36 * 24);
-  this->board->setDisplayToDecNumber(days, 32, false);
-  this->board->setLEDs(0);
+  unsigned long days_times_ten_thousand = (count * 1L) / (3.6 * 2.4);
+  this->board->setDisplayToDecNumber(days_times_ten_thousand, 16, false);
+  this->board->setLEDs(1 << (days_times_ten_thousand % 8));
 }
-
-void CountDisplay::display_days_hours(unsigned long count){
-
-  int hours = (count/3600L) % 24;
-
-  if(hours != this->hours){
-
-    hours / 10 > 0?
-      this->board->setDisplayDigit(hours / 10, 5, false):
-      this->board->clearDisplayDigit(5, false);
-
-    this->board->setDisplayDigit(hours % 10, 6, false);
-    this->board->setDisplayToString("h", 0, 7);
-    this->hours = hours;
-  }
-
-  int days = count/(3600 * 24L);
-  if(days != this->days){
-    
-    int hundreds = days / 100;
-    hundreds > 0 ?
-      this->board->setDisplayDigit(hundreds, 0, false):
-      this->board->clearDisplayDigit(0, false);
-
-    int tens = (days / 10) % 10;
-    hundreds > 0 || tens > 0?
-      this->board->setDisplayDigit(tens, 1, false):
-      this->board->clearDisplayDigit(1, false);
-
-    this->board->setDisplayDigit(days % 10, 2, false);
-    this->board->setDisplayToString("d", 0, 3);
-    this->days = days;
-  }
-
-  // show hour progress as incrementing LEDs
-  byte hour_part = (count % 3600L) / 400;
-  this->board->setLEDs((1 << hour_part) - 1);
-}
-

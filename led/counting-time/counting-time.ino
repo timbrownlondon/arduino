@@ -29,7 +29,7 @@ int scale[] = {
 };
 
 void setup() {
-  t.initialize(1000000);       // interrupt every second
+  t.initialize(950000);        // interrupt every second
   t.attachInterrupt(count_up); // call function on interrupt
 
   pinMode(BUZZER, OUTPUT);
@@ -40,27 +40,16 @@ void setup() {
 }
 
 void loop() {
-  counter_1.display_seconds(count);
-  counter_2.display_days_hours(count);
-
-  byte note = counter_1.getButton();
-  if (counter_2.getButton()) {
-    note += 8 + counter_2.getButton();
-  }
-
-  if (note) {
-    tone(BUZZER, scale[note - 1], 900);
-  }
+  counter_1.update_mode();
+  counter_1.display_by_mode(count);
+  
+  counter_2.update_mode();
+  counter_2.display_by_mode(count);
+  delay(100);
 }
 
 void count_up() {
   count++;
-
-  /*
-    if (count == 99999999) {
-      t.stop();
-    }
-  */
 
   // sound pips as clock rolls over PIPS_INTERVAL boundaries
   if ((count % PIPS_INTERVAL) > (PIPS_INTERVAL - 10)) {
@@ -70,7 +59,7 @@ void count_up() {
     tone(BUZZER, 247, 500);
   }
 
-  // write current value of count to EEPROM when divisible by 256 (every 4mins or so)
+  // write current value of count to EEPROM when divisible by 256 (every 4 mins or so)
   // the count is reset to that value after a restart
   if ((count & 0xFF) == 0 and save_count_to_eeprom) {
     EepromAPI::writeLongAt(0, count);
